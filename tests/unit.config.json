@@ -1,0 +1,21 @@
+{
+  "rootDir": "../",
+  "collectCoverageFrom": [
+    "server/**/*.js",
+    "!server/**/*.unit.js",
+    "!server/config/**/**"
+  ],
+  "coverageThreshold": {
+    "global": {
+      "statements": 0,
+      "branches": 0,
+      "functions": 0,
+      "lines": 0
+    }
+  },
+  "coverageReporters": ["json", "lcov", "text", "text-summary", "html"],
+  "moduleDirectories": [
+    "node_modules"
+  ],
+  "testRegex": "tests/.*\\.unit\\.js$"
+}

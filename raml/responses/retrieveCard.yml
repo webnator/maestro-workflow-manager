@@ -1,0 +1,79 @@
+500:
+  description: Internal error
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "50001",
+            "message": "Internal server error",
+            "trace": "60a47d0c-67c1-4af3-843e-89a5b17fff6a"
+          }
+        }
+404:
+  description: Resource not found
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "40400",
+            "message": "Resource not found",
+            "trace": "a878d7c3-bc00-42b0-94f8-fdaa19660b59"
+          }
+        }
+
+200:
+  description: Card retrieved successfully
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "20000",
+            "message": "Card retrieved successfully",
+            "trace": "3747d805-73aa-42e4-8cd6-38ac94b46b3a"
+          },
+          "data": {
+            "uuid": "c121ef70-65e0-49f6-8dce-d370d62322be",
+            "userUuid": "1f13f94c-ac37-4f87-b45d-6868797fa1dc",
+            "provider": {
+              "marqeta": {
+                "token": "88dad5e7-075e-4954-8821-4835661d8bcd",
+                "cardProduct": "eea53d33-9333-4347-88f4-9a0586a56993",
+                "userToken": "fa506506-668f-47b0-80fa-338375316fff"
+              }
+            },
+            "lastFour": "6250",
+            "pan": "111111______6250",
+            "expiration": "1220",
+            "hasPin": true,
+            "state": "ACTIVE",
+            "stateReason": "New card",
+            "dateCreated": "2016-12-12T11:06:15.088Z",
+            "dateUpdated": "2016-12-12T11:06:15.088Z",
+            "shipping": {
+              "method": "FEDEX_EXPEDITED",
+              "return_address": {
+                "first_name": "Joaquín",
+                "last_name": "Ayuso",
+                "address1": "201 Mission St",
+                "city": "San Francisco",
+                "state": "California",
+                "zip": "94105",
+                "country": "USA",
+                "phone": "(415) 500-3396"
+              },
+              "recipient_address": {
+                "first_name": "Joaquín",
+                "last_name": "Ayuso",
+                "address1": "201 Mission St",
+                "city": "San Francisco",
+                "state": "California",
+                "zip": "94105",
+                "country": "USA",
+                "phone": "(415) 500-3396"
+              }
+            }
+          }
+        }

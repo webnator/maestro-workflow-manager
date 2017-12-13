@@ -1,0 +1,14 @@
+{
+	"tags": {
+		"allowUnknownTags" : true
+	},
+	"source": {
+		"include": [
+			"server/",
+			"./README.md"
+		]
+	},
+	"opts": {
+		"destination" : "docs/"
+	}
+}

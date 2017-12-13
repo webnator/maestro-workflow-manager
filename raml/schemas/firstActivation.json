@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "expirationDate": {
+      "type": "string"
+    },
+    "lastFour": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "expirationDate","lastFour"
+  ]
+}

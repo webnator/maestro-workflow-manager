@@ -1,0 +1,12 @@
+200:
+  description: Enable the change pin process
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "20005",
+            "message": "The change pin has been enabled",
+            "trace": "33602b6e-ae45-4009-9010-f85086b6c289"
+          }
+        }

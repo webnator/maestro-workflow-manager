@@ -1,0 +1,7 @@
+{
+  "rootDir": "../",
+  "moduleDirectories": [
+    "node_modules"
+  ],
+  "testRegex": "tests/.*\\.func\\.js$"
+}

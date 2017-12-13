@@ -1,0 +1,51 @@
+{
+  "name": "maestro",
+  "version": "0.0.3",
+  "description": "Maestro - Workflow manager",
+  "main": "server",
+  "author": {
+    "name": "Williams A Aguilera",
+    "email": "webnator@gmail.com",
+    "url": "https://github.com/webnator/"
+  },
+  "license": "Copyright",
+  "dependencies": {
+    "amqplib": "^0.5.2",
+    "awilix": "2.5.0",
+    "hapi": "^16",
+    "joi": "^9.2.0",
+    "jsonschema": "^1.1.1",
+    "lodash": "3.10.1",
+    "mongodb": "^3.0.0-rc0",
+    "request": "^2.83.0",
+    "request-promise-native": "^1.0.5",
+    "uuid": "2.0.1"
+  },
+  "devDependencies": {
+    "nsp": "2.7.0",
+    "cross-env": "^4.0.0",
+    "eslint": "^4.2.0",
+    "jest": "^20.0.0",
+    "jsdoc": "^3.4.3",
+    "nodemon": "^1.11.0",
+    "raml2html": "^6.3.0",
+    "rimraf": "^2.6.1"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "scripts": {
+    "start": "node server",
+    "lint": "",
+    "dev": "cross-env NODE_ENV=local nodemon --inspect -q -w ./server server",
+    "test:clean": "rimraf ./coverage",
+    "pretest:unit": "npm run test:clean",
+    "test:unit": "cross-env NODE_ENV=test jest -c ./tests/unit.config.json --coverage",
+    "test:unit:watch": "cross-env NODE_ENV=test jest -c ./tests/unit.config.json --watchAll",
+    "test:func": "cross-env NODE_ENV=test jest -c ./tests/func.config.json",
+    "build:apiDocs:clean": "rimraf ./documentation && mkdir ./documentation",
+    "build:apiDocs": "npm run build:apiDocs:clean && raml2html raml/api.raml > ./documentation/index.html",
+    "build:docs:clean": "rimraf ./docs && mkdir ./docs",
+    "build:docs": "npm run build:docs:clean && jsdoc -c ./jsdoc.conf.json"
+  }
+}
