@@ -25,16 +25,13 @@ class TemplatesDAO extends DBService {
   /**
    * Saves the template into the collection
    * @public
+   * @param {Object} logger - The logger instance
    * @param {Object} DBObject - The container object
-   * @param {Object} logData - The log object
-   * @return {Promise}
    */
-  save(DBObject, logData) {
-    let DAOData = {
-      dbData: {
-        entity: DBObject.templateObject
-      },
-      logData: logData
+  save(logger, DBObject) {
+    logger.method(__filename, 'save').accessing();
+    const DAOData = {
+      entity: DBObject.templateObject
     };
     return super.insert(DAOData);
   }
@@ -42,19 +39,17 @@ class TemplatesDAO extends DBService {
   /**
    * Updates a template in the collection
    * @public
+   * @param {Object} logger - The logger instance
    * @param {Object} DBObject - The container object
-   * @param {Object} logData - The log object
-   * @return {Promise}
    */
-  update(DBObject, logData) {
-    let DAOData = {
-      dbData: {
-        query: {
-          name: DBObject.templateId
-        },
-        entity: DBObject.templateObject
+  updateTemplate(logger, DBObject) {
+    logger.method(__filename, 'updateTemplate').accessing();
+
+    const DAOData = {
+      query: {
+        name: DBObject.templateId
       },
-      logData: logData
+      entity: DBObject.templateObject
     };
     return super.update(DAOData);
   }
@@ -66,7 +61,7 @@ class TemplatesDAO extends DBService {
    * @param {Object} DBObject - The container object
    */
   fetch(logger, DBObject) {
-    logger.method(__filename, 'fetch').success();
+    logger.method(__filename, 'fetch').accessing();
     const DAOData = {
       query: {}
     };
@@ -82,18 +77,15 @@ class TemplatesDAO extends DBService {
   /**
    * Deletes a template from the collection
    * @public
+   * @param {Object} logger - The logger instance
    * @param {Object} DBObject - The container object
-   * @param {Object} logData - The log object
-   * @return {Promise}
    */
-  remove(DBObject, logData) {
-    let DAOData = {
-      dbData: {
-        query: {
-          name: DBObject.templateId
-        }
-      },
-      logData: logData
+  removeTemplate(logger, DBObject) {
+    logger.method(__filename, 'removeTemplate').accessing();
+    const DAOData = {
+      query: {
+        name: DBObject.templateId
+      }
     };
 
     return super.remove(DAOData);

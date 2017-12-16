@@ -12,47 +12,38 @@ function makeWorkflowService(deps) {
      * Creates a new workflow template into the DDBB
      * @public
      * @static
-     * @param {Object} data - The container object
-     * @returns {Promise}
+     * @param {Object} logger - The log object
+     * @param {Object} templateObject - The template object to create
      */
-    createTemplate(data) {
-      return new Promise(function(resolve, reject) {
-        LogService.info(data.logData, 'WFService createTemplate | Accessing');
-        data.workflowTemplate = workflowEntityFactory({ templateObject: data.payload });
+    async createTemplate(logger, {templateObject}) {
+      logger.method(__filename, 'createTemplate').accessing();
 
-        data.workflowTemplate.saveToDDBB(data).then(() => {
-          LogService.info(data.logData, 'WFService createTemplate | OK');
-          return resolve(data);
-        }).catch((err) => {
-          LogService.error(data.logData, 'WFService createTemplate | KO', err);
-          return reject(err);
-        });
-      });
+      const workflowTemplate = workflowEntityFactory({ logger, templateObject });
+      try {
+        await workflowTemplate.saveToDDBB();
+        logger.method(__filename, 'createTemplate').success();
+      } catch (err) {
+        throw err;
+      }
     },
 
     /**
      * Updates a workflow template into the DDBB
      * @public
-     * @static
-     * @param {Object} data - The container object
-     * @returns {Promise}
+     * @param {Object} logger - The log object
+     * @param {Object} templateObject - The new template object to set
+     * @param {Object} templateId - The id of the template to update
      */
-    updateTemplate(data) {
-      return new Promise(function(resolve, reject) {
-        LogService.info(data.logData, 'WFService updateTemplate | Accessing');
-        data.workflowTemplate = workflowEntityFactory({
-          templateObject: data.payload,
-          templateId: data.params.templateId
-        });
+    async updateTemplate(logger, {templateObject, templateId}) {
+      logger.method(__filename, 'updateTemplate').accessing();
 
-        return data.workflowTemplate.updateInDDBB(data).then(() => {
-          LogService.info(data.logData, 'WFService updateTemplate | OK');
-          return resolve(data);
-        }).catch((err) => {
-          LogService.error(data.logData, 'WFService updateTemplate | KO', err);
-          return reject(err);
-        });
-      });
+      const workflowTemplate = workflowEntityFactory({ logger, templateObject, templateId });
+      try {
+        await workflowTemplate.updateInDDBB();
+        logger.method(__filename, 'updateTemplate').success();
+      } catch (err) {
+        throw err;
+      }
     },
 
     /**
@@ -61,7 +52,6 @@ function makeWorkflowService(deps) {
      * @static
      * @param {Object} logger - The log object
      * @param {String} templateId - The id of the workflow template we want to retrieve
-     * @returns {Promise}
      */
     async getTemplates(logger, { templateId }) {
       logger.method(__filename, 'getTemplates').accessing();
@@ -84,23 +74,19 @@ function makeWorkflowService(deps) {
     /**
      * Deletes a workflow template
      * @public
-     * @static
-     * @param {Object} data - The container object
-     * @returns {Promise}
+     * @param {Object} logger - The log object
+     * @param {Object} templateId - The id of the template to update
      */
-    deleteTemplate(data) {
-      return new Promise(function(resolve, reject) {
-        LogService.info(data.logData, 'WFService deleteTemplate | Accessing');
-        data.workflowTemplate = workflowEntityFactory({ templateId: data.params.templateId });
+    async deleteTemplate(logger, {templateId}) {
+      logger.method(__filename, 'deleteTemplate').accessing();
 
-        return data.workflowTemplate.deleteTemplate(data).then(() => {
-          LogService.info(data.logData, 'WFService deleteTemplate | OK');
-          return resolve(data);
-        }).catch((err) => {
-          LogService.error(data.logData, 'WFService deleteTemplate | KO', err);
-          return reject(err);
-        });
-      });
+      const workflowTemplate = workflowEntityFactory({ logger, templateId });
+      try {
+        await workflowTemplate.deleteTemplate();
+        logger.method(__filename, 'createTemplate').success();
+      } catch (err) {
+        throw err;
+      }
     }
   };
 }

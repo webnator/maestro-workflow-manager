@@ -20,7 +20,9 @@ function makeWfResponses({ResponsesService}) {
 
     workflow_already_completed_ko: ResponsesService.createInternalResponse(400, '40001', 'The workflow cant continue because is already completed'),
 
-    no_workflow_found_ko: ResponsesService.createInternalResponse(400, '40000', 'No workflow process was found'),
+    no_workflow_found_ko: ResponsesService.createInternalResponse(400, '40002', 'No workflow process was found'),
+
+    invalid_wf_object: ResponsesService.createInternalResponse(400, '40003', 'Invalid workflow creation object'),
 
     ddbb_error: ResponsesService.createInternalResponse(500, '50000', 'Error connecting to the DDBB'),
   };

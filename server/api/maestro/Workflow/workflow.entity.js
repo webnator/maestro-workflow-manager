@@ -38,56 +38,44 @@ class WorkflowEntity {
 
   /**
    * Saves the templateObject to the DDBB
-   * @param data
    * @returns {Promise}
    */
-  saveToDDBB(data) {
-    return new Promise((resolve, reject) => {
-      this.logger.method(__filename, 'saveToDDBB').accessing();
+  async saveToDDBB() {
+    this.logger.method(__filename, 'saveToDDBB').accessing();
 
-      let DBObject = {
-        templateObject: this.getTemplateObject()
-      };
-      this.repository.save(DBObject, data.logData)
-        .then(() => {
-          this.logger.method(__filename, 'saveToDDBB').info(data.logData, 'WorkflowEntity saveToDDBB | OK');
-          return resolve();
-        })
-        .catch((err) => {
-          this.logger.method(__filename, 'saveToDDBB').error(data.logData, 'WorkflowEntity saveToDDBB | KO from DDBB', err);
-          return reject(this.responses.ddbb_error);
-        });
-    });
+    const DBObject = { templateObject: this.getTemplateObject() };
+    try {
+      await this.repository.save(this.logger, DBObject);
+      this.logger.method(__filename, 'saveToDDBB').success();
+    } catch (err) {
+      this.logger.method(__filename, 'saveToDDBB').error('KO from DDBB', err);
+      throw this.responses.ddbb_error;
+    }
   }
 
   /**
    * Updates the templateObject to the DDBB
-   * @param data
    * @returns {Promise}
    */
-  updateInDDBB(data) {
-    return new Promise((resolve, reject) => {
-      this.logger.method(__filename, 'updateInDDBB').accessing();
+  async updateInDDBB() {
+    this.logger.method(__filename, 'updateInDDBB').accessing();
+    const DBObject = {
+      templateObject: this.getTemplateObject(),
+      templateId: this.getTemplateId()
+    };
 
-      let DBObject = {
-        templateObject: this.getTemplateObject(),
-        templateId: this.getTemplateId()
-      };
-      this.repository.update(DBObject, data.logData).then((res) => {
-        if (res.dbData.response && res.dbData.response.result && res.dbData.response.result.n && res.dbData.response.result.n > 0) {
-          this.logger.method(__filename, 'updateInDDBB').info(data.logData, 'WorkflowEntity updateInDDBB | OK');
-          return resolve();
-        } else {
-          this.logger.method(__filename, 'updateInDDBB').info(data.logData, 'WorkflowEntity updateInDDBB | Nothing to update');
-          return reject(this.responses.no_templates_found_ko);
-        }
-
-      })
-      .catch((err) => {
-        this.logger.method(__filename, 'updateInDDBB').error(data.logData, 'WorkflowEntity updateInDDBB | KO from DDBB', err);
-        return reject(this.responses.ddbb_error);
-      });
-    });
+    try {
+      const dbResponse = await this.repository.updateTemplate(this.logger, DBObject);
+      if (dbResponse.response && dbResponse.response.result && dbResponse.response.result.n && dbResponse.response.result.n > 0) {
+        this.logger.method(__filename, 'updateInDDBB').success();
+      } else {
+        this.logger.method(__filename, 'updateInDDBB').fail('Nothing to update');
+        throw this.responses.no_templates_found_ko;
+      }
+    } catch (err) {
+      this.logger.method(__filename, 'updateInDDBB').error('KO from DDBB', err);
+      throw err === this.responses.no_templates_found_ko ? err : this.responses.ddbb_error;
+    }
   }
 
   /**
@@ -99,7 +87,6 @@ class WorkflowEntity {
     this.logger.method(__filename, 'fetchTemplate').accessing();
 
     const DBObject = { templateId };
-
     try {
       const { result } = await this.repository.fetch(this.logger, DBObject);
       this.setTemplateObject(result);
@@ -109,7 +96,6 @@ class WorkflowEntity {
       this.logger.method(__filename, 'fetchTemplate').error('KO from DDBB', err);
       throw this.responses.ddbb_error;
     }
-
   }
 
   /**
@@ -117,22 +103,17 @@ class WorkflowEntity {
    * @param data
    * @returns {Promise}
    */
-  deleteTemplate(data) {
-    return new Promise((resolve, reject) => {
-      this.logger.method(__filename, 'deleteTemplate').accessing();
+  async deleteTemplate(data) {
+    this.logger.method(__filename, 'deleteTemplate').accessing();
 
-      let DBObject = {
-        templateId: this.getTemplateId()
-      };
-      this.repository.remove(DBObject, data.logData).then((res) => {
-        this.logger.method(__filename, 'deleteTemplate').info(data.logData, 'WorkflowEntity deleteTemplate | OK');
-        return resolve();
-      })
-        .catch((err) => {
-          this.logger.method(__filename, 'deleteTemplate').error(data.logData, 'WorkflowEntity deleteTemplate | KO from DDBB', err);
-          return reject(this.responses.ddbb_error);
-        });
-    });
+    const DBObject = { templateId: this.getTemplateId() };
+    try {
+      await this.repository.removeTemplate(this.logger, DBObject);
+      this.logger.method(__filename, 'deleteTemplate').success();
+    } catch (err) {
+      this.logger.method(__filename, 'deleteTemplate').error('KO from DDBB', err);
+      throw this.responses.ddbb_error;
+    }
   }
 
 

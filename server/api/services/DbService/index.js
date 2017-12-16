@@ -34,9 +34,9 @@ class DBService {
   insert(data) {
     return new Promise((resolve, reject) => {
       let collection = this.getCollection();
-      let options = data.dbData.options || {};
+      let options = data.options || {};
 
-      collection.insert(data.dbData.entity, options, (err, response) => {
+      collection.insert(data.entity, options, (err, result) => {
         if (err) {
           if (err.code === CODE_ENTITY_EXISTS) {
             return reject(Responses.entity_exists);
@@ -44,7 +44,7 @@ class DBService {
             return reject(Responses.internal_ddbb_error);
           }
         }
-        data.dbData.response = response;
+        data.result = result;
         return resolve(data);
       });
     });
@@ -57,9 +57,9 @@ class DBService {
   insertMany(data) {
     return new Promise((resolve, reject) => {
       let collection = this.getCollection();
-      let options = data.dbData.options || {};
+      let options = data.options || {};
 
-      collection.insertMany(data.dbData.entities, options, (err, response) => {
+      collection.insertMany(data.entities, options, (err, result) => {
         if (err) {
           if (err.code === 11000) {
             return reject(Responses.some_entity_exists);
@@ -67,7 +67,7 @@ class DBService {
             return reject(Responses.internal_ddbb_error);
           }
         }
-        data.dbData.response = response;
+        data.result = result;
         return resolve(data);
       });
     });
@@ -81,10 +81,9 @@ class DBService {
   findOne(data) {
     return new Promise((resolve, reject) => {
       const collection = this.getCollection();
-      const projection = data.projection || {};
       const options = data.options || {};
 
-      collection.findOne(data.query, projection, options, (err, result) => {
+      collection.findOne(data.query, options, (err, result) => {
         if (err) {
           return reject(Responses.internal_ddbb_error);
         }
@@ -103,10 +102,9 @@ class DBService {
   find(data) {
     return new Promise((resolve, reject) => {
       const collection = this.getCollection();
-      const projection = data.projection || {};
       const options = data.options || {};
 
-      collection.find(data.query, projection, options).toArray((err, result) => {
+      collection.find(data.query, options).toArray((err, result) => {
         if (err) {
           return reject(Responses.internal_ddbb_error);
         }
@@ -125,13 +123,13 @@ class DBService {
   count(data) {
     return new Promise((resolve, reject) => {
       let collection = this.getCollection();
-      let options = data.dbData.options || {};
+      let options = data.options || {};
 
-      collection.count(data.dbData.query, options, (err, result) => {
+      collection.count(data.query, options, (err, result) => {
         if (err) {
           return reject(Responses.internal_ddbb_error);
         }
-        data.dbData.result = result;
+        data.result = result;
         return resolve(data);
       });
     });
@@ -146,16 +144,16 @@ class DBService {
     return new Promise((resolve, reject) => {
       let collection = this.getCollection();
 
-      let query = data.dbData.query;
-      let update = data.dbData.entity;
-      let options = data.dbData.options || {};
-      let sort = data.dbData.sort || {};
+      let query = data.query;
+      let update = data.entity;
+      let options = data.options || {};
+      let sort = data.sort || {};
 
       collection.findAndModify(query, sort, update, options, (err, result) => {
         if (err) {
           return reject(Responses.internal_ddbb_error);
         }
-        data.dbData.result = result;
+        data.result = result;
         return resolve(data);
       });
     });
@@ -165,21 +163,20 @@ class DBService {
    * Method from parent class to update an entity
    * @public
    * @param {Object} data - The container object
-   * @param {Object} data.dbData - The object with the mongo query
    * @return {Promise}
    */
   update(data) {
     return new Promise((resolve, reject) => {
       let collection = this.getCollection();
-      let query = data.dbData.query;
-      let update = data.dbData.entity;
-      let options = data.dbData.options || {};
+      let query = data.query;
+      let update = data.entity;
+      let options = data.options || {};
 
       collection.update(query, update, options, (err, response) => {
         if (err) {
           return reject(Responses.internal_ddbb_error);
         } else {
-          data.dbData.response = response;
+          data.response = response;
           return resolve(data);
         }
       });
@@ -191,19 +188,20 @@ class DBService {
    * @public
    * @param {Object} data - The container object
    * @param {Object} data.query - The object with the mongo query
+   * @param {Object} [data.options] - The object with the mongo options
    * @return {Promise}
    */
   remove(data) {
     return new Promise((resolve, reject) => {
       let collection = this.getCollection();
       let options = {};
-      if (data.dbData.query == undefined || Object.keys(data.dbData.query).length === 0) {
+      if (!data.query || Object.keys(data.query).length === 0) {
         return reject(Responses.condition_not_found)
       }
-      if (data.dbData.options) {
-        options = data.dbData.options;
+      if (data.options) {
+        options = data.options;
       }
-      collection.remove(data.dbData.query, options, (err) => {
+      collection.remove(data.query, options, (err) => {
         if (err) {
           return reject(Responses.internal_ddbb_error);
         }
@@ -216,16 +214,18 @@ class DBService {
   /**
    * Method from parent class to retrieve a entity biggest by parameter
    * @public
-   * @return {Object} data.entity - The entity
+   * @return {Object} data - The container object
+   * @return {Object} data.query - The mongo query to fetch
+   * @return {Object} data.fieldMax - The parameter to sort by
    */
   findMax(data) {
     return new Promise((resolve, reject) => {
       let collection = this.getCollection();
-      collection.find(data.dbData.query).sort(data.dbData.fieldMax).limit(1).toArray((err, result) => {
+      collection.find(data.query).sort(data.fieldMax).limit(1).toArray((err, result) => {
         if (err) {
           return reject(Responses.internal_ddbb_error);
         }
-        data.dbData.result = result.pop();
+        data.result = result.pop();
         return resolve(data);
       });
     });
@@ -235,18 +235,18 @@ class DBService {
    * Method from parent class to use aggregate method
    * @public
    * @param {Object} data - The container object
-   * @param {Object} data.dbData.query - The object with the mongo query
+   * @param {Object} data.query - The object with the mongo query
    * @return {Promise}
-   * @return {Object} data.dbData.result - The entity returned by the DDBB
+   * @return {Object} data.result - The entity returned by the DDBB
    */
   aggregate(data) {
     return new Promise((resolve, reject) => {
       let collection = this.getCollection();
-      collection.aggregate(data.dbData.query, (err, result) => {
+      collection.aggregate(data.query, (err, result) => {
         if (err) {
           return reject(Responses.internal_ddbb_error);
         }
-        data.dbData.result = result;
+        data.result = result;
         return resolve(data);
       });
     });

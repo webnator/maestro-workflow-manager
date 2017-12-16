@@ -23,27 +23,21 @@ function makeWorkflowController(deps) {
      * @param {Function} reply - The reply callback
      */
     async createTemplate(request, reply) {
-      const { logger } = request;
-      let data = {
-        logData: LogService.logData(request),
-        payload: request.payload,
-        schema: new WorflowCreationSchema()
-      };
-
+      const { logger, payload } = request;
       logger.method(__filename, 'createTemplate').accessing();
 
-      ValidationService.validateSchema(data)
-        .then(WorkflowService.createTemplate)
-        .then((data) => {
-          let response = ResponsesService.createResponseData(data.logData, responses.wf_template_created_ok);
-          LogService.info(data.logData, 'WorflowTemplateController createTemplate | OK');
-          return reply(response.body).code(response.statusCode);
-        })
-        .catch((err) => {
-          let response = ResponsesService.createGeneralError(err, data.logData);
-          LogService.error(data.logData, 'WorflowTemplateController createTemplate | KO', response.body);
-          return reply(response.body).code(response.statusCode);
-        });
+      let response;
+      try {
+        const templateObject = await ValidationService.validateSchema(payload, new WorflowCreationSchema());
+        await WorkflowService.createTemplate(logger, {templateObject});
+        response = ResponsesService.createResponseData(responses.wf_template_created_ok);
+        logger.method(__filename, 'createTemplate').success('OK');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.method(__filename, 'createTemplate').fail(err);
+      } finally {
+        reply(response.body).code(response.statusCode);
+      }
     },
 
     /**
@@ -55,27 +49,21 @@ function makeWorkflowController(deps) {
      * @param {Function} reply - The reply callback
      */
     async updateTemplate(request, reply) {
-      let data = {
-        logData: LogService.logData(request),
-        params: request.params,
-        payload: request.payload,
-        schema: new WorflowUpdateSchema()
-      };
+      const { logger, payload, params } = request;
+      logger.method(__filename, 'updateTemplate').accessing();
 
-      LogService.info(data.logData, 'WorflowTemplateController updateTemplate | Accessing');
-
-      ValidationService.validateSchema(data)
-        .then(WorkflowService.updateTemplate)
-        .then((data) => {
-          let response = ResponsesService.createResponseData(data.logData, responses.wf_template_updated_ok);
-          LogService.info(data.logData, 'WorflowTemplateController updateTemplate | OK');
-          return reply(response.body).code(response.statusCode);
-        })
-        .catch((err) => {
-          let response = ResponsesService.createGeneralError(err, data.logData);
-          LogService.error(data.logData, 'WorflowTemplateController updateTemplate | KO', response.body);
-          return reply(response.body).code(response.statusCode);
-        });
+      let response;
+      try {
+        const templateObject = await ValidationService.validateSchema(payload, new WorflowUpdateSchema());
+        await WorkflowService.updateTemplate(logger, {templateObject, templateId: params.templateId});
+        response = ResponsesService.createResponseData(responses.wf_template_updated_ok);
+        logger.method(__filename, 'updateTemplate').success('OK');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.method(__filename, 'updateTemplate').fail(err);
+      } finally {
+        reply(response.body).code(response.statusCode);
+      }
     },
 
     /**
@@ -99,7 +87,7 @@ function makeWorkflowController(deps) {
         response = ResponsesService.createGeneralError(err);
         logger.method(__filename, 'getTemplates').fail(err);
       } finally {
-        return reply(response.body).code(response.statusCode);
+        reply(response.body).code(response.statusCode);
       }
     },
 
@@ -111,25 +99,21 @@ function makeWorkflowController(deps) {
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
-    deleteTemplate(request, reply) {
-      let data = {
-        logData: LogService.logData(request),
-        params: request.params
-      };
+    async deleteTemplate(request, reply) {
+      const { logger, params } = request;
 
-      LogService.info(data.logData, 'WorflowTemplateController deleteTemplate | Accessing');
-
-      WorkflowService.deleteTemplate(data)
-        .then((data) => {
-          let response = ResponsesService.createResponseData(data.logData, responses.wf_template_deleted_ok, data.response);
-          LogService.info(data.logData, 'WorflowTemplateController deleteTemplate | OK');
-          return reply(response.body).code(response.statusCode);
-        })
-        .catch((err) => {
-          let response = ResponsesService.createGeneralError(err, data.logData);
-          LogService.error(data.logData, 'WorflowTemplateController deleteTemplate | KO', response.body);
-          return reply(response.body).code(response.statusCode);
-        });
+      logger.method(__filename, 'deleteTemplate').accessing();
+      let response;
+      try {
+        await WorkflowService.deleteTemplate(logger, {templateId: params.templateId});
+        response = ResponsesService.createResponseData(responses.wf_template_deleted_ok);
+        logger.method(__filename, 'deleteTemplate').success('OK');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.method(__filename, 'deleteTemplate').fail(err);
+      } finally {
+        reply(response.body).code(response.statusCode);
+      }
     },
 
   };
