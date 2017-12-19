@@ -5,9 +5,8 @@ const DBService = require('./../../services/DbService');
 
 class LogsDAO extends DBService {
 
-  constructor({LogService}) {
+  constructor() {
     super();
-    this.LogService = LogService;
   }
 
   /**
@@ -26,38 +25,28 @@ class LogsDAO extends DBService {
   /**
    * Saves the template into the collection
    * @public
+   * @param {Object} logger - The logger instance
    * @param {Object} DBObject - The container object
-   * @param {Object} logData - The log object
-   * @return {Promise}
    */
-  save(DBObject, logData) {
-    this.LogService.info(logData, 'LogsDAO save | Accessing');
-    let DAOData = {
-      dbData: {
-        entity: DBObject.logObject
-      },
-      logData: logData
-    };
+  save(logger, DBObject) {
+    logger.method(__filename, 'save').accessing();
+    const DAOData = { entity: DBObject.logObject };
     return super.insert(DAOData);
   }
 
   /**
    * Updates a process log in the collection
    * @public
+   * @param {Object} logger - The logger instance
    * @param {Object} DBObject - The container object
-   * @param {Object} logData - The log object
-   * @return {Promise}
    */
-  updateLog(DBObject, logData) {
-    this.LogService.info(logData, 'LogsDAO update | Accessing');
-    let DAOData = {
-      dbData: {
-        query: {
-          processUuid: DBObject.logObject.processUuid
-        },
-        entity: DBObject.logObject
+  updateLog(logger, DBObject) {
+    logger.method(__filename, 'updateLog').accessing();
+    const DAOData = {
+      query: {
+        processUuid: DBObject.logObject.processUuid
       },
-      logData: logData
+      entity: DBObject.logObject
     };
     return super.update(DAOData);
   }
@@ -65,25 +54,18 @@ class LogsDAO extends DBService {
   /**
    * Retrieves the process from the collection
    * @public
+   * @param {Object} logger - The logger instance
    * @param {Object} DBObject - The container object
-   * @param {Object} logData - The log object
-   * @return {Promise}
    */
-  fetch(DBObject, logData) {
-    this.LogService.info(logData, 'LogsDAO fetch | Accessing');
-    let DAOData = {
-      dbData: {
-        query: {
-          processUuid: DBObject.processUuid
-        }
-      },
-      logData: logData
+  fetch(logger, DBObject) {
+    logger.method(__filename, 'fetch').accessing();
+    const DAOData = {
+      query: {
+        processUuid: DBObject.processUuid
+      }
     };
     return super.findOne(DAOData);
   }
-
-
-
 
 }
 

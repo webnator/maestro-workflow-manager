@@ -12,14 +12,6 @@ function makeWorkflowExecutionController(deps) {
     workflowResponses: responses
   } = deps;
 
-  function checkExecutionPayload(req) {
-    let validationPayload = {
-      payload: req,
-      schema: new WorflowExecutionSchema()
-    };
-    return ValidationService.validateSchema(validationPayload);
-  }
-
   return {
     /**
      * Starts the execution of a flow
@@ -29,37 +21,33 @@ function makeWorkflowExecutionController(deps) {
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
-    executeFlow(request, reply) {
-      let data = {
-        logData: LogService.logData(request),
-        params: request.params,
-        query: request.query,
-        headers: request.headers,
-        payload: request.payload
-      };
+    async executeFlow(request, reply) {
+      const { logger, params, query, headers, payload } = request;
+      logger.method(__filename, 'executeFlow').accessing();
 
-      request.headers['x-flowid'] = request.headers['x-flowid'] || data.params.flowId;
-
-      LogService.info(data.logData, 'WorflowExecutionController executeFlow | Accessing');
-
-      checkExecutionPayload(data)
-        .then(() => WorkflowService.executeFlow(data))
-        .then((data) => {
-          let response = ResponsesService.createResponseData(data.logData, responses.wf_process_started_ok);
-          LogService.info(data.logData, 'WorflowExecutionController executeFlow | OK');
-          reply(response.body).code(response.statusCode);
-
-          return WorkflowService.processFlow(data).then(() => {
-            LogService.info(data.logData, 'WorflowExecutionController processFlow | OK');
-          }).catch((err) => {
-            LogService.info(data.logData, 'WorflowExecutionController processFlow | KO', err);
-          });
-        })
-        .catch((err) => {
-          let response = ResponsesService.createGeneralError(err, data.logData);
-          LogService.error(data.logData, 'WorflowExecutionController executeFlow | KO', response.body);
-          reply(response.body).code(response.statusCode);
+      headers['x-flowid'] = headers['x-flowid'] || params.flowId;
+      let response;
+      try {
+        await ValidationService.validateSchema(headers, new WorflowExecutionSchema());
+        await WorkflowService.executeFlow(logger, {
+          templateId: headers['x-flowid'],
+          data: { params, query, headers, payload }
         });
+        response = ResponsesService.createResponseData(responses.wf_process_started_ok);
+        logger.method(__filename, 'executeFlow').success('OK');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.method(__filename, 'executeFlow').fail(err);
+      } finally {
+        reply(response.body).code(response.statusCode);
+      }
+
+      try {
+        await WorkflowService.processFlow(logger, {});
+        logger.method(__filename, 'executeFlow - processing').success('OK');
+      } catch (err) {
+        logger.method(__filename, 'executeFlow - processing').error();
+      }
     },
 
     /**

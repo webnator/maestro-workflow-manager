@@ -11,7 +11,6 @@ const config = require('./../../../config/environment');
 class WorkflowProcessEntity {
   constructor(deps, opts) {
     const {
-      LogService,
       RepositoryFactory,
       workflowResponses: responses,
       REPOSITORY_NAME_LOGS: repository,
@@ -20,8 +19,8 @@ class WorkflowProcessEntity {
     opts = Object.assign(opts, {});
 
     this.repository = RepositoryFactory.getRepository(repository);
-    this.LogService = LogService;
     this.QueueService = QueueService;
+    this.logger = opts.logger;
     this.responses = responses;
 
     this.logObject = {};
@@ -263,81 +262,61 @@ class WorkflowProcessEntity {
 
   /**
    * Saves the process to the DDBB
-   * @param data
    * @returns {Promise}
    */
-  saveToDDBB(data) {
-    return new Promise((resolve, reject) => {
-      this.LogService.info(data.logData, 'WorkflowProcessEntity saveToDDBB | Accessing');
+  async saveToDDBB() {
+    this.logger.method(__filename, 'saveToDDBB').accessing();
 
-      let DBObject = {
-        logObject: this.getLogObject()
-      };
-      this.repository.save(DBObject, data.logData)
-        .then(() => {
-          this.LogService.info(data.logData, 'WorkflowProcessEntity saveToDDBB | OK');
-          return resolve();
-        })
-        .catch((err) => {
-          this.LogService.error(data.logData, 'WorkflowProcessEntity saveToDDBB | KO from DDBB', err);
-          return reject(this.responses.ddbb_error);
-        });
-    });
+    const DBObject = { logObject: this.getLogObject() };
+    try {
+      await this.repository.save(this.logger, DBObject);
+      this.logger.method(__filename, 'saveToDDBB').success();
+    } catch (err) {
+      this.logger.method(__filename, 'saveToDDBB').error('KO from DDBB', err);
+      throw this.responses.ddbb_error;
+    }
   }
 
   /**
    * Update the process in the DDBB
-   * @param data
    * @returns {Promise}
    */
-  async updateInDDBB(data) {
-    return new Promise((resolve, reject) => {
-      this.LogService.info(data.logData, 'WorkflowProcessEntity updateInDDBB | Accessing');
+  async updateInDDBB() {
+    this.logger.method(__filename, 'updateInDDBB').accessing();
 
-      let DBObject = {
-        logObject: this.getLogObject()
-      };
-      this.repository.updateLog(DBObject, data.logData)
-        .then(() => {
-          this.LogService.info(data.logData, 'WorkflowProcessEntity updateInDDBB | OK');
-          return resolve();
-        })
-        .catch((err) => {
-          this.LogService.error(data.logData, 'WorkflowProcessEntity updateInDDBB | KO from DDBB', err);
-          return reject(this.responses.ddbb_error);
-        });
-    });
+    const DBObject = { logObject: this.getLogObject() };
+    try {
+      await this.repository.updateLog(this.logger, DBObject);
+      this.logger.method(__filename, 'updateInDDBB').success();
+    } catch (err) {
+      this.logger.method(__filename, 'updateInDDBB').error('KO from DDBB', err);
+      throw this.responses.ddbb_error;
+    }
   }
 
   /**
    * Fetch the process from the DDBB
-   * @param data
    * @returns {Promise}
    */
-  async fetchProcess(data) {
-    return new Promise((resolve, reject) => {
-      this.LogService.info(data.logData, 'WorkflowProcessEntity fetchProcess | Accessing');
+  async fetchProcess() {
+    this.logger.method(__filename, 'fetchProcess').accessing();
+    const DBObject = { processUuid: this.getProcessUuid() };
 
-      let DBObject = {
-        processUuid: this.getProcessUuid()
-      };
-      this.repository.fetch(DBObject, data.logData).then((res) => {
-        if (res.dbData.result) {
-          this.setLogObject(res.dbData.result);
-          this.setProcessData(this.getLogObjectData());
-          this.LogService.info(data.logData, 'WorkflowProcessEntity fetchProcess | OK');
-          return resolve();
-        } else {
-          this.LogService.info(data.logData, 'WorkflowProcessEntity fetchProcess | KO No process');
-          return reject(this.responses.no_workflow_found_ko);
-        }
-      }).catch((err) => {
-        this.LogService.error(data.logData, 'WorkflowProcessEntity fetchProcess | KO from DDBB', err);
-        return reject(this.responses.ddbb_error);
-      });
-    });
+    try {
+      const { result } =  await this.repository.fetch(this.logger, DBObject);
+      if (result) {
+        this.setLogObject(result);
+        this.setProcessData(this.getLogObjectData());
+        this.logger.method(__filename, 'fetchProcess').success();
+      } else {
+        this.logger.method(__filename, 'fetchProcess').error('No process');
+        throw this.responses.no_workflow_found_ko;
+      }
+    } catch (err) {
+      this.logger.method(__filename, 'fetchProcess').error('DB KO');
+      throw err === this.responses.no_workflow_found_ko ? err : this.responses.ddbb_error;
+    }
   }
-
 
 }
 

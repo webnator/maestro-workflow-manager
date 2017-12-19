@@ -16,34 +16,31 @@ function makeWorkflowService(deps) {
      * Starts the execution of a workflow
      * @public
      * @static
+     * @param {Object} logger - The log object
+     * @param {Object} templateId - The template id of the flow
      * @param {Object} data - The container object
      * @returns {Promise}
      */
-    executeFlow(data) {
-      return new Promise(function (resolve, reject) {
-        LogService.info(data.logData, 'WFExecutionService executeFlow | Accessing');
-        data.workflowTemplate = workflowEntityFactory({templateId: data.headers['x-flowid']});
+    async executeFlow(logger, { templateId, data }) {
+      logger.method(__filename, 'executeFlow').accessing();
 
-        return data.workflowTemplate.fetchTemplate(data)
-          .then(() => {
-            if (!data.workflowTemplate.getTemplateObject()) {
-              LogService.info(data.logData, 'WFExecutionService executeFlow | KO flow doesnt exist');
-              QueueService.publishHTTP(config.topics.unhandled_flows, data.payload, data.headers, data.query, data.params);
-              return reject(responses.no_templates_found_ko);
-            }
-            data.workflowProcess = workflowProcessEntityFactory({templateObject: data.workflowTemplate.getTemplateObject()});
-            data.workflowProcess.setLogObjectData(data);
-            return data;
-          }).then((data) => data.workflowProcess.saveToDDBB(data))
-          .then(() => {
-            data.headers['x-flowprocessid'] = data.workflowProcess.getProcessUuid();
-            LogService.info(data.logData, 'WFExecutionService executeFlow | OK');
-            return resolve(data);
-          }).catch((err) => {
-            LogService.error(data.logData, 'WFExecutionService executeFlow | KO', err);
-            return reject(err);
-          });
-      });
+      const workflowTemplate = workflowEntityFactory({logger, templateId});
+      try {
+        const template = await workflowTemplate.fetchTemplate({templateId});
+        if (!template) {
+          logger.method(__filename, 'executeFlow').error('flow doesnt exist');
+          await QueueService.publishHTTP(config.topics.unhandled_flows, data.payload, data.headers, data.query, data.params);
+          throw responses.no_templates_found_ko;
+        }
+        const workflowProcess = workflowProcessEntityFactory({logger, templateObject: workflowTemplate.getTemplateObject()});
+        workflowProcess.setLogObjectData({payload: data.payload});
+        await workflowProcess.saveToDDBB();
+        data.headers['x-flowprocessid'] = workflowProcess.getProcessUuid();
+        logger.method(__filename, 'executeFlow').success();
+        return { data, workflowProcess };
+      } catch (err) {
+        throw err;
+      }
     },
 
     /**
