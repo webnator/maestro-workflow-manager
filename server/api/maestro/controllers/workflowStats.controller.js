@@ -17,25 +17,21 @@ function makeWorkflowStatsController(deps) {
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
-    getFlows(request, reply) {
-      let data = {
-        logData: LogService.logData(request),
-        query: request.query
-      };
+    async getFlows(request, reply) {
+      const { logger, query } = request;
 
-      LogService.info(data.logData, 'WorflowStatsController getFlows | Accessing');
-
-      WorkflowService.getFlows(data)
-        .then((data) => {
-          let response = ResponsesService.createResponseData(data.logData, responses.wf_retrieved_ok, data.flowsResponse);
-          LogService.info(data.logData, 'WorflowStatsController getFlows | OK');
-          reply(response.body).code(response.statusCode);
-        })
-        .catch((err) => {
-          let response = ResponsesService.createGeneralError(err, data.logData);
-          LogService.error(data.logData, 'WorflowStatsController getFlows | KO', response.body);
-          reply(response.body).code(response.statusCode);
-        });
+      logger.method(__filename, 'getFlows').accessing();
+      let response;
+      try {
+        const flows = await WorkflowService.getFlows(logger, { query });
+        response = ResponsesService.createResponseData(responses.wf_retrieved_ok, flows);
+        logger.method(__filename, 'getTemplates').success('OK');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.method(__filename, 'getFlows').fail(err);
+      } finally {
+        reply(response.body).code(response.statusCode);
+      }
     },
 
   };

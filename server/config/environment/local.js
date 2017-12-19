@@ -19,7 +19,8 @@ module.exports = {
     vhost: '/',
     exchange: 'maestro_exchange',
     errorQueue: 'flow_error',
-    errorTopic: 'flow_error'
+    errorTopic: 'flow_error',
+    reconnectionTime: 2000
   }
 
 };

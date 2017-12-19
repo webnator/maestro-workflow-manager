@@ -1,10 +1,7 @@
 'use strict';
 
-
-
 function makeWorkflowService(deps) {
   const {
-    LogService,
     workflowStatsFactory
   } = deps;
 
@@ -13,24 +10,19 @@ function makeWorkflowService(deps) {
      * Starts the execution of a workflow
      * @public
      * @static
-     * @param {Object} data - The container object
-     * @returns {Promise}
+     * @param {Object} logger - The log object
+     * @param {Object} query - The request query object
      */
-    async getFlows(data) {
-      LogService.info(data.logData, 'WFStatsService getFlows | Accessing');
+    async getFlows(logger, { query }) {
+      logger.method(__filename, 'getFlows').accessing();
 
-      data.processes = workflowStatsFactory({params: data.query});
-
+      const process = workflowStatsFactory({logger, params: query});
       try {
-        await data.processes.fetchProcesses(data);
-
-        data.flowsResponse = data.processes.getProcessesResponse();
-
-        LogService.info(data.logData, 'WFStatsService getFlows | OK');
-        return Promise.resolve(data);
+        await process.fetchProcesses();
+        logger.method(__filename, 'getFlows').success();
+        return process.getProcessesResponse();
       } catch (err) {
-        LogService.info(data.logData, 'WFStatsService getFlows | KO Error');
-        return Promise.reject(err);
+        throw err;
       }
 
     },

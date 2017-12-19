@@ -3,7 +3,6 @@
 class WorkflowStatsEntity {
   constructor(deps, opts) {
     const {
-      LogService,
       RepositoryFactory,
       workflowResponses: responses,
       REPOSITORY_NAME_STATS
@@ -11,7 +10,7 @@ class WorkflowStatsEntity {
     opts = Object.assign(opts, {});
 
     this.repository = RepositoryFactory.getRepository(REPOSITORY_NAME_STATS);
-    this.LogService = LogService;
+    this.logger = opts.logger;
     this.responses = responses;
     this.params = opts.params;
   }
@@ -32,30 +31,21 @@ class WorkflowStatsEntity {
     return this.processes;
   }
 
-
-
   /**
    * Fetches a list of processes depending on the received parameters
-   * @param data
-   * @returns {Promise}
    */
-  async fetchProcesses(data) {
-    return new Promise((resolve, reject) => {
-      this.LogService.info(data.logData, 'WorkflowStatsEntity fetchProcesses | Accessing');
+  async fetchProcesses() {
+    this.logger.method(__filename, 'fetchProcesses').accessing();
 
-      let DBObject = {
-        params: this.params
-      };
-      this.repository.fetch(DBObject, data.logData).then((res) => {
-        this.setProcesses(res.dbData.result);
-        this.LogService.info(data.logData, 'WorkflowStatsEntity fetchProcesses | OK');
-        return resolve();
-      })
-      .catch((err) => {
-        this.LogService.error(data.logData, 'WorkflowStatsEntity fetchProcesses | KO from DDBB', err);
-        return reject(this.responses.ddbb_error);
-      });
-    });
+    const DBObject = { params: this.params };
+    try {
+      const { result } = await this.repository.fetch(this.logger, DBObject);
+      this.setProcesses(result);
+      this.logger.method(__filename, 'fetchProcesses').success();
+    } catch (err) {
+      this.logger.method(__filename, 'fetchProcesses').error('KO from DDBB', err);
+      throw this.responses.ddbb_error;
+    }
   }
 
 }

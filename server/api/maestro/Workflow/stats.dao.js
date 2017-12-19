@@ -5,9 +5,8 @@ const DBService = require('./../../services/DbService');
 
 class StatsDAO extends DBService {
 
-  constructor({LogService}) {
+  constructor() {
     super();
-    this.LogService = LogService;
   }
 
   /**
@@ -25,28 +24,24 @@ class StatsDAO extends DBService {
   /**
    * Retrieves the templates from the collection
    * @public
+   * @param {Object} logger - The logger instance
    * @param {Object} DBObject - The container object
-   * @param {Object} logData - The log object
-   * @return {Promise}
    */
-  fetch(DBObject, logData) {
-    this.LogService.info(logData, 'StatsDAO fetch | Accessing');
-    let DAOData = {
-      dbData: {
-        query: {}
-      },
-      logData: logData
+  fetch(logger, DBObject) {
+    logger.method(__filename, 'fetch').accessing();
+    const DAOData = {
+      query: {}
     };
 
     if (DBObject.params) {
       if (DBObject.params.from) {
-        DAOData.dbData.query.startDate = { $gte: new Date(DBObject.params.from) };
+        DAOData.query.startDate = { $gte: new Date(DBObject.params.from) };
       }
       if (DBObject.params.to) {
-        DAOData.dbData.query.startDate = { $lte: new Date(DBObject.params.to) };
+        DAOData.query.startDate = { $lte: new Date(DBObject.params.to) };
       }
       if (DBObject.params.process) {
-        DAOData.dbData.query.flowName = DBObject.params.process;
+        DAOData.query.flowName = DBObject.params.process;
       }
     }
 

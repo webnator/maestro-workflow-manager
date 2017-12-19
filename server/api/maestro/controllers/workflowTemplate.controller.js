@@ -8,7 +8,6 @@ function makeWorkflowController(deps) {
   const {
     ResponsesService,
     ValidationService,
-    LogService,
     WorkflowTemplateService: WorkflowService,
     workflowResponses: responses
   } = deps;

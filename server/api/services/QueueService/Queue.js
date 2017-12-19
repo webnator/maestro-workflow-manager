@@ -48,10 +48,15 @@ class Queue {
       this.logger.method(__filename, 'connect').info('Queue connect - OK');
     } catch (err) {
       this.logger.method(__filename, 'connect').fail('Queue connect - KO Retrying - Error: ', err);
-      setTimeout(async () => {
-        await this.connect();
-      }, this.queueConfig.reconnectionTime);
+      await this.wait(this.queueConfig.reconnectionTime || 5000);
+      await this.connect();
     }
+  }
+
+  wait(secs) {
+    return new Promise(function(resolve) {
+      setTimeout(() => resolve(), secs);
+    });
   }
 
   _setConnectionErrorProcedure() {
