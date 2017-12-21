@@ -2,7 +2,6 @@
 
 function makeWorkflowService(deps) {
   const {
-    LogService,
     workflowEntityFactory,
     workflowResponses: responses
   } = deps;

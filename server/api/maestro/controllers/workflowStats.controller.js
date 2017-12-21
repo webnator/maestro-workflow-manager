@@ -3,7 +3,6 @@
 function makeWorkflowStatsController(deps) {
   const {
     ResponsesService,
-    LogService,
     WorkflowStatsService: WorkflowService,
     workflowResponses: responses
   } = deps;

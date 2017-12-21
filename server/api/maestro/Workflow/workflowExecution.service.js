@@ -4,7 +4,6 @@ const config = require('./../../../config/environment');
 
 function makeWorkflowService(deps) {
   const {
-    LogService,
     workflowEntityFactory,
     workflowProcessEntityFactory,
     workflowResponses: responses,
@@ -15,13 +14,11 @@ function makeWorkflowService(deps) {
     /**
      * Starts the execution of a workflow
      * @public
-     * @static
      * @param {Object} logger - The log object
      * @param {Object} templateId - The template id of the flow
-     * @param {Object} data - The container object
-     * @returns {Promise}
+     * @param {Object} request - The request object
      */
-    async executeFlow(logger, { templateId, data }) {
+    async executeFlow(logger, { templateId, request }) {
       logger.method(__filename, 'executeFlow').accessing();
 
       const workflowTemplate = workflowEntityFactory({logger, templateId});
@@ -29,84 +26,80 @@ function makeWorkflowService(deps) {
         const template = await workflowTemplate.fetchTemplate({templateId});
         if (!template) {
           logger.method(__filename, 'executeFlow').error('flow doesnt exist');
-          await QueueService.publishHTTP(config.topics.unhandled_flows, data.payload, data.headers, data.query, data.params);
+          await QueueService.publishHTTP(config.topics.unhandled_flows, request.payload, request.headers, request.query, request.params);
           throw responses.no_templates_found_ko;
         }
         const workflowProcess = workflowProcessEntityFactory({logger, templateObject: workflowTemplate.getTemplateObject()});
-        workflowProcess.setLogObjectData({payload: data.payload});
+        workflowProcess.setLogObjectData({payload: request.payload});
         await workflowProcess.saveToDDBB();
-        data.headers['x-flowprocessid'] = workflowProcess.getProcessUuid();
+        request.headers['x-flowprocessid'] = workflowProcess.getProcessUuid();
         logger.method(__filename, 'executeFlow').success();
-        return { data, workflowProcess };
+        return { request, workflowProcess };
       } catch (err) {
         throw err;
       }
     },
 
     /**
-     * Process the next task of a workflow the execution of a workflow
+     * Process the next task of a workflow
      * @public
-     * @static
-     * @param {Object} data - The container object
-     * @returns {Promise}
+     * @param {Object} logger - The log object
+     * @param {Object} request - The request object
      */
-    async processFlow(data) {
-      LogService.info(data.logData, 'WFExecutionService processFlow | Accessing');
-      data.workflowProcess = workflowProcessEntityFactory({processUuid: data.headers['x-flowprocessid']});
-      data.workflowProcess.setProcessStep(data.headers['x-flowtaskid']);
-      data.workflowProcess.setProcessResponse(data.payload);
+    async processFlow(logger, {request}) {
+      logger.method(__filename, 'processFlow').accessing();
 
+      const workflowProcess = workflowProcessEntityFactory({processUuid: request.headers['x-flowprocessid']});
+      workflowProcess.setProcessStep(request.headers['x-flowtaskid']);
+      workflowProcess.setProcessResponse(request.payload);
 
       try {
-        await data.workflowProcess.fetchProcess(data);
+        await workflowProcess.fetchProcess();
 
-        data.workflowProcess.setCurrentTask();
-        data.workflowProcess.checkResponse(data);
-        data.workflowProcess.updateTasks(data);
-        data.workflowProcess.executeProcess(data);
-        data.workflowProcess.checkCompletion(data);
+        workflowProcess.setCurrentTask();
+        workflowProcess.checkResponse(request.headers['x-flowresponsecode']);
+        workflowProcess.updateTasks(request.headers);
+        workflowProcess.executeProcess();
+        workflowProcess.checkCompletion(request.headers);
 
-        await data.workflowProcess.updateInDDBB(data);
+        await workflowProcess.updateInDDBB();
 
-        LogService.info(data.logData, 'WFExecutionService processFlow | OK');
-        return Promise.resolve(data);
+        logger.method(__filename, 'processFlow').success();
       } catch (err) {
-        LogService.error(data.logData, 'WFExecutionService processFlow | KO', err);
-        return Promise.reject(err);
+        logger.method(__filename, 'processFlow').error('Error executing the flow', err);
+        throw err;
       }
     },
 
     /**
      * Continues a previously errored workflow
      * @public
-     * @static
-     * @param {Object} data - The container object
-     * @returns {Promise}
+     * @param {Object} logger - The log object
+     * @param {Object} request - The request object
      */
-    async continueFlow(data) {
-      LogService.info(data.logData, 'WFExecutionService continueFlow | Accessing');
-      data.workflowProcess = workflowProcessEntityFactory({processUuid: data.payload.processUuid});
+    async continueFlow(logger, {request}) {
+      logger.method(__filename, 'continueFlow').accessing();
 
+      const workflowProcess = workflowProcessEntityFactory({processUuid: request.payload.processUuid});
       try {
-        await data.workflowProcess.fetchProcess(data);
+        await workflowProcess.fetchProcess();
 
         // If the process has no error don't continue
-        if (!data.workflowProcess.checkIfProcessHasError()) {
+        if (!workflowProcess.checkIfProcessHasError()) {
           throw responses.workflow_already_completed_ko;
         }
 
-        const lastStepUuid = data.workflowProcess.getLastErroredStep().taskUuid;
-        data.workflowProcess.setNextProcessStep(lastStepUuid);
-        data.workflowProcess.executeProcess(data);
-        data.workflowProcess.checkCompletion(data);
+        const lastStepUuid = workflowProcess.getLastErroredStep().taskUuid;
+        workflowProcess.setNextProcessStep(lastStepUuid);
+        workflowProcess.executeProcess();
+        workflowProcess.checkCompletion(request.headers);
 
-        await data.workflowProcess.updateInDDBB(data);
+        await workflowProcess.updateInDDBB(data);
 
-        LogService.info(data.logData, 'WFExecutionService continueFlow | OK');
-        return Promise.resolve(data);
+        logger.method(__filename, 'continueFlow').success();
       } catch (err) {
-        LogService.error(data.logData, 'WFExecutionService continueFlow | KO', err);
-        return Promise.reject(err);
+        logger.method(__filename, 'continueFlow').error('Error continuing the flow', err);
+        throw err;
       }
     },
 

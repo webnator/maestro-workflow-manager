@@ -144,12 +144,12 @@ class WorkflowProcessEntity {
 
   /**
    * Checks that the response for the task is valid, if not, continues the process but sends it to the queue
-   * @param {Object} data - The container object
+   * @param {String} response - The response retrieved from the service
    */
-  checkResponse(data) {
+  checkResponse(response) {
     let task = this.getCurrentTask();
     if (task) {
-      if (task.expectedResponse === data.headers['x-flowresponsecode']) {
+      if (task.expectedResponse === response) {
         this.validateSchema(this.getProcessResponse(), task.responseSchema);
         const newData = Object.assign(this.processData, this.response, {});
         this.setProcessData(newData);
@@ -182,16 +182,16 @@ class WorkflowProcessEntity {
 
   /**
    * Updates the data for the previous task and for the current one
-   * @param data
+   * @param {Object} headers - The headers of the request
    */
-  updateTasks(data) {
+  updateTasks(headers) {
     if (this.getCurrentTask()) {
       let status = processConfig.status.COMPLETED;
       let payload = null;
       if (this.getTaskError() === true) {
         status = processConfig.status.FAILED;
       }
-      this.setPreviousTaskContent(data.headers, status, payload);
+      this.setPreviousTaskContent(headers, status, payload);
     }
     let nextTask = this.getNextTask();
     if (nextTask) {
@@ -219,10 +219,11 @@ class WorkflowProcessEntity {
 
   /**
    * Checks if the complete workflow has already been completed
+   * @param {Object} headers - The headers of the request
    */
-  checkCompletion(data) {
+  checkCompletion(headers) {
     if (!this.getNextTask()) {
-      this.logObject.endDate = new Date(data.headers['x-flowtaskfinishedon']);
+      this.logObject.endDate = new Date(headers['x-flowtaskfinishedon']);
       if (this.getTaskError() === true) {
         this.logObject.status.push(new ProcessStatusModel(processConfig.status.FAILED));
       } else {

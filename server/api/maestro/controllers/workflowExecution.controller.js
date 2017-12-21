@@ -7,7 +7,6 @@ function makeWorkflowExecutionController(deps) {
   const {
     ResponsesService,
     ValidationService,
-    LogService,
     WorkflowExecutionService: WorkflowService,
     workflowResponses: responses
   } = deps;
@@ -29,24 +28,26 @@ function makeWorkflowExecutionController(deps) {
       let response;
       try {
         await ValidationService.validateSchema(headers, new WorflowExecutionSchema());
-        await WorkflowService.executeFlow(logger, {
+        const executionResponse = await WorkflowService.executeFlow(logger, {
           templateId: headers['x-flowid'],
-          data: { params, query, headers, payload }
+          request: { params, query, headers, payload }
         });
         response = ResponsesService.createResponseData(responses.wf_process_started_ok);
         logger.method(__filename, 'executeFlow').success('OK');
+        reply(response.body).code(response.statusCode);
+
+        // Async execution
+        try {
+          await WorkflowService.processFlow(logger, {request: executionResponse.request});
+          logger.method(__filename, 'executeFlow - processing').success('OK');
+        } catch (err) {
+          logger.method(__filename, 'executeFlow - processing').error();
+        }
+
       } catch (err) {
         response = ResponsesService.createGeneralError(err);
         logger.method(__filename, 'executeFlow').fail(err);
-      } finally {
         reply(response.body).code(response.statusCode);
-      }
-
-      try {
-        await WorkflowService.processFlow(logger, {});
-        logger.method(__filename, 'executeFlow - processing').success('OK');
-      } catch (err) {
-        logger.method(__filename, 'executeFlow - processing').error();
       }
     },
 
@@ -58,26 +59,24 @@ function makeWorkflowExecutionController(deps) {
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
-    processFlow(request, reply) {
-      let data = {
-        logData: LogService.logData(request),
-        headers: request.headers,
-        payload: request.payload
-      };
+    async processFlow(request, reply) {
+      const { logger, headers, payload } = request;
+      logger.method(__filename, 'processFlow').accessing();
 
-      LogService.info(data.logData, 'WorflowExecutionController processFlow | Accessing');
-
-      WorkflowService.processFlow(data)
-        .then((data) => {
-          let response = ResponsesService.createResponseData(data.logData, responses.wf_process_informed_ok);
-          LogService.info(data.logData, 'WorflowExecutionController processFlow | OK');
-          reply(response.body).code(response.statusCode);
-        })
-        .catch((err) => {
-          let response = ResponsesService.createGeneralError(err, data.logData);
-          LogService.error(data.logData, 'WorflowExecutionController processFlow | KO', response.body);
-          reply(response.body).code(response.statusCode);
+      let response;
+      try {
+        await WorkflowService.processFlow(logger, {
+          templateId: headers['x-flowid'],
+          data: { params, query, headers, payload }
         });
+        response = ResponsesService.createResponseData(responses.wf_process_informed_ok);
+        logger.method(__filename, 'processFlow').success('OK');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.method(__filename, 'processFlow').fail(err);
+      } finally {
+        reply(response.body).code(response.statusCode);
+      }
     },
 
     /**
@@ -88,27 +87,22 @@ function makeWorkflowExecutionController(deps) {
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
-    continueFlow(request, reply) {
-      let data = {
-        logData: LogService.logData(request),
-        payload: request.payload,
-        schema: new WorflowContinueSchema()
-      };
+    async continueFlow(request, reply) {
+      const { logger, headers, payload } = request;
+      logger.method(__filename, 'continueFlow').accessing();
 
-      LogService.info(data.logData, 'WorflowExecutionController processFlow | Accessing');
-
-      ValidationService.validateSchema(data)
-        .then(WorkflowService.continueFlow)
-        .then((data) => {
-          let response = ResponsesService.createResponseData(data.logData, responses.wf_process_informed_ok);
-          LogService.info(data.logData, 'WorflowExecutionController processFlow | OK');
-          reply(response.body).code(response.statusCode);
-        })
-        .catch((err) => {
-          let response = ResponsesService.createGeneralError(err, data.logData);
-          LogService.error(data.logData, 'WorflowExecutionController processFlow | KO', response.body);
-          reply(response.body).code(response.statusCode);
-        });
+      let response;
+      try {
+        const templateObject = await ValidationService.validateSchema(payload, new WorflowContinueSchema());
+        await WorkflowService.continueFlow(logger, {payload: templateObject, headers});
+        response = ResponsesService.createResponseData(responses.wf_process_informed_ok);
+        logger.method(__filename, 'continueFlow').success('OK');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.method(__filename, 'continueFlow').fail(err);
+      } finally {
+        reply(response.body).code(response.statusCode);
+      }
     },
 
   };
