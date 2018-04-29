@@ -2,126 +2,75 @@
 
 const config = require('./config');
 const Message = require('./Message');
-const Manager = require('./QueueManager');
 
-class Queue {
-  constructor(deps, { queueConfig, routes }) {
-    const {
-      amqp,
-      LogService
-    } = deps;
+function makeService(deps) {
+  const {
+    amqp,
+    hoek,
+    GlobalService,
+    delayLib,
+    logger
+  } = deps;
 
-    this.amqp = amqp;
-    this.logger = LogService();
+  let queueConfig, amqpConnection, exchangeConfig, queueConsumeConfig, publisherConfig, retryConfig;
+  let consumers = [];
 
-    this.connection = null;
-    this.channel = null;
-
-    this.queueConfig = queueConfig;
-    this.amqpConnection = null;
-    this.routes = routes;
-
-    this.exchangeConfig = config.defaultExchangeConfig;
-    this.queueConsumeConfig = config.defaultQueueConsumeConfig;
-    this.publisherConfig = config.defaultPublisherConfig;
-    this.retryConfig = config.retryPolicy;
-
-    this.setConnectionString();
+  function setConnectionConfig() {
+    queueConfig = GlobalService.getConfigValue(config.configVariable);
+    hoek.assert(queueConfig, 'Queue Configuration not defined');
+    amqpConnection = 'amqp://' + queueConfig.user + ':' + queueConfig.pass + '@' + queueConfig.host + ':' + queueConfig.port + '/' + queueConfig.vhost;
+    exchangeConfig = GlobalService.getConfigValue(config.exchangeConfigVariable);
+    queueConsumeConfig = GlobalService.getConfigValue(config.queueConsumeConfigVariable);
+    publisherConfig = GlobalService.getConfigValue(config.publisherConfigVariable);
+    retryConfig = GlobalService.getConfigValue(config.retryConfigVariable);
   }
 
-  setConnectionString() {
-    if (this.queueConfig) {
-      this.amqpConnection = 'amqp://' + this.queueConfig.user + ':' + this.queueConfig.pass + '@' + this.queueConfig.host + ':' + this.queueConfig.port + '/' + this.queueConfig.vhost;
-    } else {
-      this.logger.method(__filename, 'setConnectionString').error('Queue Configuration not defined');
-    }
+  let connection, channel;
+
+  /**
+   * Asserts the exchanges and queues in rabbit
+   * @param {String} queue - The key of the queue to be asserted and binded
+   * @param {String} topic - The topic of the queue to be asserted and binded
+   * @returns {Promise<*>}
+   */
+  async function assertQueueAndExchanges(queue, topic) {
+    const mLogger = logger.child({file: __filename, method: 'assertQueueAndExchanges'});
+    mLogger.info('Accessing');
+    await channel.assertExchange(queueConfig.exchange, 'topic', exchangeConfig);
+    await channel.assertExchange(queueConfig.exchange + '_delayed', 'x-delayed-message', Object.assign({}, exchangeConfig, {
+      arguments: {'x-delayed-type': 'topic'}
+    }));
+    const bindedQueue = await createAndBindQueue(queue, topic);
+    mLogger.info('End');
+    return bindedQueue;
   }
 
-  async connect() {
-    try {
-      this.connection = await this.amqp.connect(this.amqpConnection);
-      this.channel = await this.connection.createConfirmChannel();
-      this._setConnectionErrorProcedure();
-      if (this.routes) {
-        this.manager = new Manager(this.logger, this.routes, this);
-      }
-      this.logger.method(__filename, 'connect').info('Queue connect - OK');
-    } catch (err) {
-      this.logger.method(__filename, 'connect').fail('Queue connect - KO Retrying - Error: ', err);
-      await this.wait(this.queueConfig.reconnectionTime || 5000);
-      await this.connect();
-    }
+  /**
+   * Creates a queue and bings a topic to it. If the topic is not defined, binds it to the same name of the queue
+   * @param {String} queueKey - The queue name
+   * @param {String} [topic] - The topic to bind. Optional, if it's not defined topic is the same as queue
+   * @returns {Promise<*>}
+   */
+  async function createAndBindQueue(queueKey, topic) {
+    const mLogger = logger.child({file: __filename, method: 'createAndBindQueue'});
+    mLogger.info('Accessing');
+    topic = topic || queueKey;
+    const {queue} = await channel.assertQueue(queueKey);
+    await channel.bindQueue(queue, queueConfig.exchange, topic);
+    await channel.bindQueue(queue, queueConfig.exchange + '_delayed', topic);
+    mLogger.info('End');
+    return queue;
   }
 
-  wait(secs) {
-    return new Promise(function(resolve) {
-      setTimeout(() => resolve(), secs);
-    });
-  }
-
-  _setConnectionErrorProcedure() {
-    this.connection.on('exit', err => this.connect());
-    this.connection.on('close', err => this.connect());
-    this.connection.on('error', err => this.connect());
-  }
-
-  registerRoutes(routeFile) {
-    this.routes = routeFile;
-    this.manager = new Manager(this.logger, this.routes, this);
-  }
-
-  consume(queue, topic, callback) {
-    if (!queue) {
-      queue = topic;
-    }
-    this.channel.assertExchange(this.queueConfig.exchange, 'topic', this.exchangeConfig);
-    this.channel.assertQueue(queue).then((res) => {
-      this.channel.bindQueue(res.queue, this.queueConfig.exchange, topic);
-      this.channel.consume(res.queue, callback, this.queueConsumeConfig);
-    });
-  }
-
-  ack(msg) {
-    if (this.channel) {
-      this.channel.ack(msg);
-    }
-  }
-
-  async publish(logger, {key, msg}) {
-    for (let i = 0; i < this.retryConfig.retries; i++) {
-      logger.info('Queue Publish | Accessing for the: ' + (i + 1) + ' time');
-      let message = new Message(msg);
-      this.channel.assertExchange(this.queueConfig.exchange, 'topic', this.exchangeConfig);
-      try {
-        const queue = await this.channel.assertQueue(key);
-        this.channel.bindQueue(queue.queue, this.queueConfig.exchange, key);
-        return this.channel.publish(
-          this.queueConfig.exchange,
-          key,
-          message.getStringBufferBody(), this.publisherConfig, (err) => {
-            if (err) {
-              logger.info('Queue Publish | KO', err);
-              return Promise.reject(err);
-            } else {
-              logger.info('Queue Publish | OK');
-              return Promise.resolve();
-            }
-          });
-      } catch (err) {
-        await Queue._wait(this.retryConfig.time);
-      }
-    }
-
-  }
-
-  createAndBindQueue(queue, topic) {
-    topic = topic || queue;
-    this.channel.assertQueue(queue).then((res) => {
-      this.channel.bindQueue(res.queue, this.queueConfig.exchange, topic);
-    });
-  }
-
-  static _createHTTPRequest(payload, headers, query, params) {
+  /**
+   * Formats a HTTP request
+   * @param {Object} payload - The object of payload
+   * @param {Object} headers - The object of headers
+   * @param {Object} query - The object of query
+   * @param {Object} params - The object of params
+   * @returns {{headers: *|{}, payload: *|{}, query: *|{}, params: *|{}}}
+   */
+  function createHTTPRequest(payload, headers, query, params) {
     return {
       headers: headers || {},
       payload: payload || {},
@@ -130,27 +79,146 @@ class Queue {
     };
   }
 
-  publishToErrorQueue(msg, responseData) {
-    msg.response = responseData;
-    this.channel.assertQueue(this.queueConfig.errorQueue).then((res) => {
-      this.channel.bindQueue(res.queue, this.queueConfig.exchange, this.queueConfig.errorTopic);
-      return this.publish(this.queueConfig.errorTopic, msg);
-    });
+  return {
+    get connection() {
+      return connection;
+    },
 
-  }
+    get channel() {
+      return channel;
+    },
 
-  static _wait(seconds) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        return resolve();
-      }, seconds);
-    });
-  }
+    createAndBindQueue,
+    async connect() {
+      const mLogger = logger.child({file: __filename, method: 'connect'});
+      mLogger.info('Accessing');
+      setConnectionConfig();
+      // TODO check if the connection and channel exist and are alive, and if so, return them
+      // Else
+      // TODO set a max connection retry
+      while (true) { // eslint-disable-line no-constant-condition
+        try {
+          connection = await amqp.connect(amqpConnection);
+          channel = await connection.createChannel();
+          mLogger.info('End');
+          return;
+        } catch (err) {
+          mLogger.error({err}, 'KO Retrying');
+          await delayLib(queueConfig.reconnectionTime);
+        }
+      }
+    },
 
-  publishHTTPToTopic(logger, key, {payload, headers, query, params}) {
-    let msg = Queue._createHTTPRequest(payload, headers, query, params);
-    return this.publish(logger, {key, msg});
-  }
+    async consume(queue, topic, callback) {
+      queue = queue || topic;
+      const rabQueue = await assertQueueAndExchanges(queue, topic);
+      let consumer = await channel.consume(rabQueue, callback, queueConsumeConfig);
+      consumers.push(consumer);
+    },
+
+    ack(msg) {
+      if (channel) {
+        channel.ack(msg);
+      }
+    },
+
+    async publish({ key, msg, delay, traceId }) {
+      const mLogger = logger.child({file: __filename, method: 'publish'});
+      mLogger.info('Accessing');
+      const message = new Message(msg);
+
+      let exchange = queueConfig.exchange;
+      let publishConfig = publisherConfig;
+      if (delay && parseInt(delay) > 0) {
+        exchange = queueConfig.exchange + '_delayed';
+        publishConfig = Object.assign({}, publishConfig, {headers: {'x-delay': parseInt(delay)}});
+      }
+      publishConfig.headers = Object.assign({}, publishConfig.headers, {'x-from': process.env.LOGGER_MS_NAME || 'unknown'});
+
+      const reqLogger = logger.child({
+        file: __filename,
+        method: 'publish',
+        traceId,
+        target: {
+          url: key,
+          method: exchange,
+          protocol: 'amqp',
+        }
+      });
+      if (process.env.QUEUE_LOG_PAYLOAD && JSON.parse(process.env.QUEUE_LOG_PAYLOAD)) {
+        reqLogger.debug({payload: msg}, 'Start publishing message');
+      } else {
+        reqLogger.debug('Start publishing message');
+      }
+
+      await assertQueueAndExchanges(key, key);
+
+      const result = channel.publish(
+        exchange,
+        key,
+        message.getStringBufferBody(),
+        publishConfig
+      );
+      if (result) {
+        reqLogger.info('Message was published');
+      } else {
+        reqLogger.error('Message not published');
+        throw new Error('Message not published');
+      }
+    },
+
+    async publishToErrorQueue(msg, responseData) {
+      msg.response = responseData;
+      await createAndBindQueue(queueConfig.errorQueue, queueConfig.errorTopic);
+      return this.publish({ key: queueConfig.errorTopic, msg });
+    },
+
+    async publishRetry({ key, msg, delay, traceId }) {
+      const mLogger = logger.child({file: __filename, method: 'publishRetry'});
+      let continue_flag = false;
+      for (let i = 0; i < retryConfig.retries; i++) {
+        mLogger.debug('Trying for the: ' + (i + 1) + ' time');
+        continue_flag = false;
+        await this.publish({key, msg, delay, traceId}).catch((err) => {
+          mLogger.debug({ key, msg, err }, 'Failed for the: ' + (i + 1) + ' time');
+          continue_flag = true;
+        });
+        if (continue_flag === false) {
+          return;
+        }
+        await delayLib(retryConfig.time);
+      }
+      mLogger.error('Failed after:' + retryConfig.retries + ' times');
+      throw new Error('Failed after: ' + retryConfig.retries + ' times');
+    },
+
+    publishHTTPToTopic(key, { payload, headers, query, params, traceId }) {
+      let msg = createHTTPRequest(payload, headers, query, params);
+      return this.publishToTopic({ key, msg, traceId });
+    },
+
+    publishDelayedHTTPToTopic(key, { payload, headers, query, params, traceId }, delay) {
+      let msg = createHTTPRequest(payload, headers, query, params);
+      return this.publishToTopic({ key, msg, delay, traceId });
+    },
+
+    publishToTopic({ key, msg, delay, traceId }) {
+      return this.publishRetry({ key, msg, delay, traceId });
+    },
+
+    async cancelConsumers() {
+      for (let i = 0; i < consumers.length; i++) {
+        const consumer = consumers[i];
+        try {
+          await await channel.cancel(consumer.consumerTag);
+        } catch (e) {
+          throw new Error(e);
+        }
+
+      }
+      consumers = [];
+    }
+  };
 }
 
-module.exports = Queue;
+module.exports = makeService;

@@ -1,7 +1,7 @@
 'use strict';
 
 const Joi = require('joi');
-const queueConfigDefaults = require('../config').configDefaults;
+const queueConfigDefaults = require('./../config').configDefaults;
 
 function ConfigObject() {
   return Joi.object().keys({
@@ -14,7 +14,7 @@ function ConfigObject() {
     delaySeconds: Joi.number().integer().greater(0).default(queueConfigDefaults.delaySeconds),
     reconnectionTime: Joi.number().integer().greater(0).default(queueConfigDefaults.reconnectionTime),
     exchange: Joi.string().required(),
-    maxRetries: Joi.number().integer().greater(0).default(queueConfigDefaults.maxRetries),
+    maxRetries: Joi.number().integer().greater(-1).default(queueConfigDefaults.maxRetries),
     timeBetweenRetries: Joi.number().integer().greater(0).default(queueConfigDefaults.timeBetweenRetries),
     errorQueue:  Joi.string().required(),
     errorTopic:  Joi.string().required(),

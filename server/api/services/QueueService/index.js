@@ -1,14 +1,5 @@
 'use strict';
 
-let myQueue;
-const Queue = require('./Queue');
+const container = require('./boot');
 
-module.exports = (deps) => {
-  return {
-    set(config) {
-      myQueue = new Queue(deps, config);
-      return myQueue;
-    },
-    get() { return myQueue }
-  }
-};
+module.exports = container.resolve('init');

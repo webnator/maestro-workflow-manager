@@ -1,103 +1,226 @@
 'use strict';
 
+const uuid = require('uuid');
 const config = require('./config');
-let QueueRouter = require('./QueueRouter');
 
-class QueueManager {
-  constructor(logger, routeFile, queue) {
-    this.logger = logger;
-    // Sets up a new instance of the router
-    this.router = new QueueRouter();
-    // Sets the registered routes
-    routeFile(this.router);
-    this.queue = queue;
-    this.registerConsumers();
+function makeService(deps) {
+  const {
+    GlobalService,
+    Queue,
+    QueueRouter,
+    logger
+  } = deps;
+
+  let isClosing = false;
+  let isConnecting = false;
+
+  async function setQueueConnection() {
+    // Sets up a new queue instance
+    isConnecting = true;
+    await Queue.connect();
+    isConnecting = false;
+    isClosing = false;
+    setConnectionErrorProcedure();
+    await consumeQueue();
   }
 
-  registerConsumers() {
-    let routes = this.router.getRoutes();
-    this.logger.method(__filename, 'registerConsumers').accessing('Registering ' + routes.length + ' routes');
+  function setConnectionErrorProcedure() {
+    Queue.connection.once('exit', err => errorHandler(err, 'exit'));
+    Queue.connection.once('close', err => errorHandler(err, 'close'));
+    Queue.connection.on('error', err => errorHandler(err, 'error'));
+  }
+
+  async function errorHandler(err, type) {
+    const mLogger = logger.child({file: __filename, method: 'errorHandler'});
+    mLogger.warn({err, type}, 'Handling error: ' + type);
+    try {
+      await Queue.cancelConsumers();
+      await Queue.channel.close();
+      await Queue.connection.close();
+    } catch (e) {
+      mLogger.warn({err: e}, 'Error tearing down previous connection');
+    }
+    if (isClosing === false && isConnecting === false) {
+      mLogger.info('Reconnecting');
+      await setQueueConnection();
+    }
+  }
+
+  async function consumeQueue() {
+    let routes = QueueRouter.getRoutes();
+    const clogger = logger.child({ file: __filename, method: '_consumeQueue'});
+    clogger.info('Registering ' + routes.length + ' routes');
     for (let i = 0; i < routes.length; i++) {
       let route = routes[i];
-
-      this.queue.consume(route.queue, route.topic, (message) => {
-        let msgRequest;
+      await Queue.consume(route.queue, route.topic, (message) => {
+        let request = {};
         try {
-          msgRequest = JSON.parse(message.content.toString());
-          if (!msgRequest.headers) {
-            msgRequest.headers = {};
-          }
-          msgRequest.method = config.methodName;
-          msgRequest.path = route.topic;
-        } catch(err) {
-          msgRequest = message.content.toString();
+          request = Object.assign({}, JSON.parse(message.content.toString()));
+        } catch (err) {
+          request = Object.assign({}, {queueMessage: message.content.toString()});
+          clogger.warn({
+            err,
+            method: message.fields.exchange,
+            url: route.topic,
+            from: message.properties.headers['x-from'] || 'unknown'
+          }, 'The message is not a JSON object. Sending as queueMessage');
         }
 
-        let bindObject = {
-          message: message,
-          queue: this.queue
-        };
+        const raw = Object.assign({}, request);
+        if (!request.headers) {
+          request.headers = {};
+        }
+        if (!request.headers['x-trace-id']) {
+          clogger.warn({
+            method: message.fields.exchange,
+            url: route.topic,
+            headers: request.headers,
+            from: message.properties.headers['x-from'] || 'unknown',
+          }, 'You should send the "x-trace-id" in the headers to keep the request traceability');
+          request.headers['x-trace-id'] = uuid.v4();
+        }
+        request.payload = request.payload || {};
+        request.method = config.methodName;
+        request.path = route.topic;
+        request.info = {received: Date.now()};
+        logger.trace = request.headers['x-trace-id'];
+        request.logger = logger.child({
+          trace: request.headers['x-trace-id'],
+          req: {
+            id: uuid.v4(),
+            raw: {
+              req: {
+                method: message.fields.exchange,
+                url: route.topic,
+                headers: request.headers,
+                connection: {
+                  remoteAddress: message.properties.headers['x-from'] || 'unknown'
+                },
+              },
+            },
+          },
+        });
 
-        route.handler(msgRequest, QueueManager._replyFunction.bind(bindObject));
+        Promise.resolve()
+          .then(() =>
+            route.handler(request, replyFunction.bind({
+              message,
+              raw,
+              request,
+              logger
+            }))
+          ).catch((err) => {
+            request.logger.error({ err }, 'Error executing handler. Sending to error queue');
+            return Queue.publishToErrorQueue(logger, raw, err).then(() => Queue.ack(message));
+          }).catch(
+            (err) => request.logger.fatal({err}, 'Unhandled error while publishing to the error queue')
+          );
       });
     }
   }
 
-  static _replyFunction(data) {
-    return {
-      code: (status) => {
-        let request = JSON.parse(this.message.content.toString());
-        if (request.headers && request.headers['x-flowinformtopic']) {
+  // REVIEW: ADD ASYNOP counter
+  function replyFunction(responseBody) {
+    const {request, raw} = this;
+    request.info.responded = Date.now();
+    let status = 200;
+    let header = {};
 
-          let headers = {
-            'x-flowprocessid': request.headers['x-flowprocessid'],
-            'x-flowtaskid': request.headers['x-flowtaskid'],
-            'x-flowresponsecode': status,
-            'x-flowtaskfinishedon': new Date()
-          };
-          this.queue.publishHTTPRequest(request.headers['x-flowinformtopic'], data, headers);
-        }
-        switch(parseInt(status.toString().charAt(0))) {
-          case 2: //2xx status codes
-            this.logger.method(__filename, 'registerConsumers').success('QueueManager _replyFunction | Ok Acknowledged');
-            this.queue.channel.ack(this.message);
-            break;
-          case 4: //4xx status codes
-            this.logger.method(__filename, 'registerConsumers').error('QueueManager _replyFunction | 400 Sending to error queue');
-            this.queue.publishToErrorQueue(JSON.parse(this.message.content.toString()), data);
-            this.queue.ack(this.message);
-            break;
-          case 5: //5xx status codes
-            let content = JSON.parse(this.message.content.toString());
-            if (content.headers && content.headers['X-TimesResent'] !== undefined && !isNaN(parseInt(content.headers['X-TimesResent']))) {
-              content.headers['X-TimesResent']++;
-            } else {
-              content.headers = content.headers || {};
-              content.headers['X-TimesResent'] = 0;
+    process.nextTick(() => {
+
+      if (request.headers && request.headers['x-flowinformtopic']) {
+        request.headers = Object.assign({}, request.headers, {
+          'x-flowresponsecode': status,
+          'x-flowtaskfinishedon': new Date()
+        });
+        Queue.publishHTTPToTopic(request.headers['x-flowinformtopic'], request);
+      }
+
+      const loggerData = {
+        payload: request.payload,
+        res: {
+          statusCode: status,
+          header,
+        },
+        responseTime: request.info.responded - request.info.received,
+      };
+      const loggerMessage = 'Queue request completed';
+      switch (parseInt(status.toString().charAt(0))) {
+        case 2: //2xx status codes
+          request.logger.info(loggerData, loggerMessage);
+          Queue.ack(this.message);
+          break;
+        case 4: //4xx status codes
+          request.logger.info(loggerData, loggerMessage);
+          Queue.publishToErrorQueue(raw, responseBody);
+          Queue.ack(this.message);
+          break;
+        case 5: //5xx status codes
+          request.logger.warn(loggerData, loggerMessage);
+          if (raw.headers && raw.headers['X-TimesResent'] !== undefined && !isNaN(parseInt(raw.headers['X-TimesResent']))) {
+            raw.headers['X-TimesResent']++;
+          } else {
+            raw.headers = raw.headers || {};
+            raw.headers['X-TimesResent'] = 0;
+          }
+
+          Queue.ack(this.message);
+
+          setTimeout(() => {
+            if (raw.headers['X-TimesResent'] >= GlobalService.getConfigValue(config.configVariable).maxRetries) {
+              request.logger.error(loggerData, '500 after max retries Sending to error queue');
+              return Queue.publishToErrorQueue(raw, responseBody);
             }
+            request.logger.warn(loggerData, '500 Re-queueing for the ' + raw.headers['X-TimesResent'] + ' time');
+            Queue.publish({
+              key: this.message.fields.routingKey,
+              msg: raw,
+            });
+          }, GlobalService.getConfigValue(config.configVariable).timeBetweenRetries);
 
-            this.queue.ack(this.message);
+          break;
+        default:
+          request.logger.error(loggerData, 'Unknown response Sending to error queue');
+          Queue.publishToErrorQueue(raw, responseBody);
+          Queue.ack(this.message);
+          break;
+      }
+    });
 
-            setTimeout(() => {
-              if (content.headers['X-TimesResent'] > this.queue.queueConfig.maxRetries) {
-                this.logger.method(__filename, 'registerConsumers').error('QueueManager _replyFunction | 500 after max retries Sending to error queue');
-                this.queue.publishToErrorQueue(content, data);
-              } else {
-                this.logger.method(__filename, 'registerConsumers').fail('QueueManager _replyFunction | 500 Re-queueing for the ' + content.headers['X-TimesResent'] + ' time' );
-                this.queue.publish(this.message.fields.routingKey, content);
-              }
-            }, this.queue.queueConfig.timeBetweenRetries);
-
-            break;
-          default:
-            this.logger.method(__filename, 'registerConsumers').error('QueueManager _replyFunction | Unknown response Sending to error queue');
-            this.queue.publishToErrorQueue(JSON.parse(this.message.content.toString()), data);
-            this.queue.ack(this.message);
-            break;
-        }
+    return {
+      code(code) {
+        status = code;
+        return this;
+      },
+      header(key, value) {
+        header[key] = value;
+        return this;
       }
     };
   }
+
+  return {
+    startRoutes(routeFile) {
+      routeFile(QueueRouter);
+    },
+
+    connect() {
+      return setQueueConnection();
+    },
+
+    getQueue() {
+      return Queue;
+    },
+
+    async close() {
+      if (Queue && Queue.connection) {
+        isClosing = true;
+        QueueRouter.cleanRoutes();
+        // Queue.connection.on('close', () => {});
+        await Queue.connection.close();
+      }
+    }
+  };
 }
 
-module.exports = QueueManager;
+module.exports = makeService;

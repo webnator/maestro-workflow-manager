@@ -6,7 +6,10 @@ class Message {
   }
 
   getStringBufferBody() {
-    return new Buffer(JSON.stringify(this.body));
+    if (typeof this.body === 'object') {
+      this.body = JSON.stringify(this.body);
+    }
+    return new Buffer(this.body);
   }
 
 }

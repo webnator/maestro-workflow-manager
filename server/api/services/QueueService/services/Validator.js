@@ -1,16 +1,17 @@
 'use strict';
 
 const Joi = require('joi');
-const ConfigModel = require('../models/ConfigObject');
+const ConfigModel = require('./../joiModels/ConfigObject');
 
-exports.validateSchema = validateSchema;
-exports.validateConfigSchema = validateConfigSchema;
-
-
-function validateSchema(object, schema) {
-  return Joi.validate(object, schema);
+function makeService() {
+  return {
+    validateSchema(object, schema) {
+      return Joi.validate(object, schema);
+    },
+    validateConfigSchema(object) {
+      return this.validateSchema(object, new ConfigModel());
+    },
+  };
 }
 
-function validateConfigSchema(object) {
-  return validateSchema(object, new ConfigModel());
-}
+module.exports = makeService;

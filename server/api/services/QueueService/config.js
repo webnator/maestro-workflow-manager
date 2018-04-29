@@ -1,12 +1,12 @@
 'use strict';
 
 module.exports = {
-  // configVariable: 'queueConfig',
-  // exchangeConfigVariable: 'exchangeConfig',
-  // queueConsumeConfigVariable: 'queueConsumeConfig',
-  // publisherConfigVariable: 'publisherConfig',
-  // retryConfigVariable: 'retryConfig',
-  // logConfigVariable: 'logConfig',
+  configVariable: 'queueConfig',
+  loggerConfigVariable: 'loggerConfig',
+  exchangeConfigVariable: 'exchangeConfig',
+  queueConsumeConfigVariable: 'queueConsumeConfig',
+  publisherConfigVariable: 'publisherConfig',
+  retryConfigVariable: 'retryConfig',
   methodName: 'QUEUE',
   defaultExchangeConfig: {
     durable: true
@@ -19,9 +19,9 @@ module.exports = {
   },
   retryPolicy: {
     retries: 10,
-    time: 1000
+    time: 100
   },
-  // logPrefix: '[Queue Library]',
+  logPrefix: '[Queue Library]',
   configDefaults: {
     prefetch: 1,
     delaySeconds: 3000,
