@@ -41,14 +41,14 @@ class WorkflowEntity {
    * @returns {Promise}
    */
   async saveToDDBB() {
-    this.logger.method(__filename, 'saveToDDBB').accessing();
+    this.logger.where(__filename, 'saveToDDBB').accessing();
 
     const DBObject = { templateObject: this.getTemplateObject() };
     try {
       await this.repository.save(this.logger, DBObject);
-      this.logger.method(__filename, 'saveToDDBB').success();
+      this.logger.where(__filename, 'saveToDDBB').end();
     } catch (err) {
-      this.logger.method(__filename, 'saveToDDBB').error('KO from DDBB', err);
+      this.logger.where(__filename, 'saveToDDBB').error('KO from DDBB', err);
       throw this.responses.ddbb_error;
     }
   }
@@ -58,7 +58,7 @@ class WorkflowEntity {
    * @returns {Promise}
    */
   async updateInDDBB() {
-    this.logger.method(__filename, 'updateInDDBB').accessing();
+    this.logger.where(__filename, 'updateInDDBB').accessing();
     const DBObject = {
       templateObject: this.getTemplateObject(),
       templateId: this.getTemplateId()
@@ -67,13 +67,13 @@ class WorkflowEntity {
     try {
       const dbResponse = await this.repository.updateTemplate(this.logger, DBObject);
       if (dbResponse.response && dbResponse.response.result && dbResponse.response.result.n && dbResponse.response.result.n > 0) {
-        this.logger.method(__filename, 'updateInDDBB').success();
+        this.logger.where(__filename, 'updateInDDBB').end();
       } else {
-        this.logger.method(__filename, 'updateInDDBB').fail('Nothing to update');
+        this.logger.where(__filename, 'updateInDDBB').error('Nothing to update');
         throw this.responses.no_templates_found_ko;
       }
     } catch (err) {
-      this.logger.method(__filename, 'updateInDDBB').error('KO from DDBB', err);
+      this.logger.where(__filename, 'updateInDDBB').error('KO from DDBB', err);
       throw err === this.responses.no_templates_found_ko ? err : this.responses.ddbb_error;
     }
   }
@@ -84,16 +84,16 @@ class WorkflowEntity {
    * @returns {Promise}
    */
   async fetchTemplate({templateId}) {
-    this.logger.method(__filename, 'fetchTemplate').accessing();
+    this.logger.where(__filename, 'fetchTemplate').accessing();
 
     const DBObject = { templateId };
     try {
       const { result } = await this.repository.fetch(this.logger, DBObject);
       this.setTemplateObject(result);
-      this.logger.method(__filename, 'fetchTemplate').success();
+      this.logger.where(__filename, 'fetchTemplate').end();
       return this.getTemplateObject();
     } catch (err) {
-      this.logger.method(__filename, 'fetchTemplate').error('KO from DDBB', err);
+      this.logger.where(__filename, 'fetchTemplate').error('KO from DDBB', err);
       throw this.responses.ddbb_error;
     }
   }
@@ -104,14 +104,14 @@ class WorkflowEntity {
    * @returns {Promise}
    */
   async deleteTemplate(data) {
-    this.logger.method(__filename, 'deleteTemplate').accessing();
+    this.logger.where(__filename, 'deleteTemplate').accessing();
 
     const DBObject = { templateId: this.getTemplateId() };
     try {
       await this.repository.removeTemplate(this.logger, DBObject);
-      this.logger.method(__filename, 'deleteTemplate').success();
+      this.logger.where(__filename, 'deleteTemplate').end();
     } catch (err) {
-      this.logger.method(__filename, 'deleteTemplate').error('KO from DDBB', err);
+      this.logger.where(__filename, 'deleteTemplate').error('KO from DDBB', err);
       throw this.responses.ddbb_error;
     }
   }

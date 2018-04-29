@@ -3,8 +3,8 @@
 function makeWorkflowStatsController(deps) {
   const {
     ResponsesService,
-    WorkflowStatsService: WorkflowService,
-    workflowResponses: responses
+    WorkflowStatsService,
+    workflowResponses
   } = deps;
 
   return {
@@ -19,18 +19,20 @@ function makeWorkflowStatsController(deps) {
     async getFlows(request, reply) {
       const { logger, query } = request;
 
-      logger.method(__filename, 'getFlows').accessing();
+      logger.where(__filename, 'getFlows').accessing();
       let response;
       try {
-        const flows = await WorkflowService.getFlows(logger, { query });
-        response = ResponsesService.createResponseData(responses.wf_retrieved_ok, flows);
-        logger.method(__filename, 'getTemplates').success('OK');
+        const flows = await WorkflowStatsService.getFlows(logger, { query });
+
+        response = ResponsesService.createResponseData(workflowResponses.wf_retrieved_ok, flows);
+        logger.where(__filename, 'getTemplates').info('Flows stats retrieved correctly');
       } catch (err) {
         response = ResponsesService.createGeneralError(err);
-        logger.method(__filename, 'getFlows').fail(err);
-      } finally {
-        reply(response.body).code(response.statusCode);
+        logger.where(__filename, 'getFlows').warn({err}, 'Flows stats not retrieved');
       }
+      logger.where(__filename, 'getFlows').end();
+      return reply(response.body).code(response.statusCode);
+
     },
 
   };

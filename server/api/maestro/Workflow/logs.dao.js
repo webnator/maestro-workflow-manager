@@ -1,12 +1,14 @@
 'use strict';
 
-const config = require('./../../../config/environment');
 const DBService = require('./../../services/DbService');
 
 class LogsDAO extends DBService {
-
-  constructor() {
+  constructor(deps) {
     super();
+    const {
+      config
+    } = deps;
+    this.collectionName = config.collections.logs;
   }
 
   /**
@@ -15,7 +17,7 @@ class LogsDAO extends DBService {
    * @return {string} result - The collection name
    */
   getCollectionName() {
-    return config.collections.logs;
+    return this.collectionName;
   }
 
   getResponses() {
@@ -29,7 +31,7 @@ class LogsDAO extends DBService {
    * @param {Object} DBObject - The container object
    */
   save(logger, DBObject) {
-    logger.method(__filename, 'save').accessing();
+    logger.where(__filename, 'save').accessing();
     const DAOData = { entity: DBObject.logObject };
     return super.insert(DAOData);
   }
@@ -41,7 +43,7 @@ class LogsDAO extends DBService {
    * @param {Object} DBObject - The container object
    */
   updateLog(logger, DBObject) {
-    logger.method(__filename, 'updateLog').accessing();
+    logger.where(__filename, 'updateLog').accessing();
     const DAOData = {
       query: {
         processUuid: DBObject.logObject.processUuid
@@ -58,7 +60,7 @@ class LogsDAO extends DBService {
    * @param {Object} DBObject - The container object
    */
   fetch(logger, DBObject) {
-    logger.method(__filename, 'fetch').accessing();
+    logger.where(__filename, 'fetch').accessing();
     const DAOData = {
       query: {
         processUuid: DBObject.processUuid

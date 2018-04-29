@@ -14,12 +14,12 @@ function makeWorkflowService(deps) {
      * @param {Object} query - The request query object
      */
     async getFlows(logger, { query }) {
-      logger.method(__filename, 'getFlows').accessing();
+      logger.where(__filename, 'getFlows').accessing();
 
       const process = workflowStatsFactory({logger, params: query});
       try {
         await process.fetchProcesses();
-        logger.method(__filename, 'getFlows').success();
+        logger.where(__filename, 'getFlows').end();
         return process.getProcessesResponse();
       } catch (err) {
         throw err;

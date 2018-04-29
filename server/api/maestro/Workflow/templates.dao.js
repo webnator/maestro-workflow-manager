@@ -1,12 +1,15 @@
 'use strict';
 
-const config = require('./../../../config/environment');
 const DBService = require('./../../services/DbService');
 
 class TemplatesDAO extends DBService {
 
-  constructor() {
+  constructor(deps) {
     super();
+    const {
+      config
+    } = deps;
+    this.collectionName = config.collections.templates;
   }
 
   /**
@@ -15,7 +18,7 @@ class TemplatesDAO extends DBService {
    * @return {string} result - The collection name
    */
   getCollectionName() {
-    return config.collections.templates;
+    return this.collectionName;
   }
 
   getResponses() {
@@ -26,69 +29,73 @@ class TemplatesDAO extends DBService {
    * Saves the template into the collection
    * @public
    * @param {Object} logger - The logger instance
-   * @param {Object} DBObject - The container object
+   * @param {Object} template - The template object to store in the DB
    */
-  save(logger, DBObject) {
-    logger.method(__filename, 'save').accessing();
+  async save(logger, {template}) {
+    logger.where(__filename, 'save').accessing();
     const DAOData = {
-      entity: DBObject.templateObject
+      entity: template
     };
-    return super.insert(DAOData);
+    await super.insert(DAOData);
   }
 
   /**
    * Updates a template in the collection
    * @public
    * @param {Object} logger - The logger instance
-   * @param {Object} DBObject - The container object
+   * @param {Object} template - The new template object to update in the DB
+   * @param {String} templateId - The template if to update
    */
-  updateTemplate(logger, DBObject) {
-    logger.method(__filename, 'updateTemplate').accessing();
+  async updateTemplate(logger, {templateId, template}) {
+    logger.where(__filename, 'updateTemplate').accessing();
 
     const DAOData = {
       query: {
-        name: DBObject.templateId
+        name: templateId
       },
-      entity: DBObject.templateObject
+      entity: template
     };
-    return super.update(DAOData);
+    const result = await super.update(DAOData);
+    return result.response && result.response.result && result.response.result.n && result.response.result.n > 0;
   }
 
   /**
    * Retrieves the templates from the collection
    * @publicç
    * @param {Object} logger - The logger instance
-   * @param {Object} DBObject - The container object
+   * @param {String} [templateId] - The template id to retrieve. If not provided retrieves all
    */
-  fetch(logger, DBObject) {
-    logger.method(__filename, 'fetch').accessing();
+  async fetch(logger, templateId) {
+    logger.where(__filename, 'fetch').accessing();
     const DAOData = {
-      query: {}
+      query: {},
+      options: {projection: {_id: 0}}
     };
-
-    if (DBObject.templateId) {
-      DAOData.query.name = DBObject.templateId;
-      return super.findOne(DAOData);
+    let res;
+    if (templateId) {
+      DAOData.query.name = templateId;
+      res = await super.findOne(DAOData);
     } else {
-      return super.find(DAOData);
+      res = await super.find(DAOData);
     }
+    return res.result;
   }
 
   /**
    * Deletes a template from the collection
    * @public
    * @param {Object} logger - The logger instance
-   * @param {Object} DBObject - The container object
+   * @param {String} templateId - The template id to delete
    */
-  removeTemplate(logger, DBObject) {
-    logger.method(__filename, 'removeTemplate').accessing();
+  async removeTemplate(logger, templateId) {
+    logger.where(__filename, 'removeTemplate').accessing();
     const DAOData = {
       query: {
-        name: DBObject.templateId
+        name: templateId
       }
     };
 
-    return super.remove(DAOData);
+    await super.remove(DAOData);
   }
 
 }

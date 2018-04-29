@@ -1,7 +1,7 @@
 'use strict';
 
-const container = require('./../boot');
-const config = require('./../../config/environment');
+const container = require('../../boot');
+const config = container.resolve('config');
 
 const WorkflowExecutionController = container.resolve('WorkflowExecutionController');
 

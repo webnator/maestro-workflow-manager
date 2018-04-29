@@ -1,13 +1,13 @@
 'use strict';
 
-const container = require('./../boot');
+const container = require('../../boot');
 
 const WorkflowTemplateController = container.resolve('WorkflowTemplateController');
 const WorkflowExecutionController = container.resolve('WorkflowExecutionController');
 const WorkflowStatsController = container.resolve('WorkflowStatsController');
 
-module.exports = function(server) {
-
+module.exports = (server) => {
+  // Template management APIs
   server.route({
     method: 'POST',
     path: '/templates',
@@ -53,6 +53,7 @@ module.exports = function(server) {
     handler: WorkflowTemplateController.updateTemplate
   });
 
+  // Flow Execution APIs
   server.route({
     method: 'POST',
     path: '/executeFlow/{flowId}',

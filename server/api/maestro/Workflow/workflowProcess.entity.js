@@ -6,7 +6,6 @@ const processModel = require('./models/process.model');
 const processConfig = require('./models/process.config');
 const ProcessDataModel = require('./models/processData.model');
 const ProcessStatusModel = require('./models/processStatus.model');
-const config = require('./../../../config/environment');
 
 class WorkflowProcessEntity {
   constructor(deps, opts) {
@@ -14,7 +13,8 @@ class WorkflowProcessEntity {
       RepositoryFactory,
       workflowResponses: responses,
       REPOSITORY_NAME_LOGS: repository,
-      QueueService
+      QueueService,
+      config
     } = deps;
     opts = Object.assign(opts, {});
 
@@ -22,6 +22,7 @@ class WorkflowProcessEntity {
     this.QueueService = QueueService;
     this.logger = opts.logger;
     this.responses = responses;
+    this.config = config;
 
     this.logObject = {};
     this.setLogObjectFromTemplate(opts.templateObject);
@@ -138,7 +139,7 @@ class WorkflowProcessEntity {
         process: this.getProcessUuid(),
         errors: validationResponse.errors
       };
-      this.QueueService.publishHTTP(config.queues.inconsistent_responses, badPayload);
+      this.QueueService.publishHTTP(this.config.queues.inconsistent_responses, badPayload);
     }
   }
 
@@ -266,14 +267,14 @@ class WorkflowProcessEntity {
    * @returns {Promise}
    */
   async saveToDDBB() {
-    this.logger.method(__filename, 'saveToDDBB').accessing();
+    this.logger.where(__filename, 'saveToDDBB').accessing();
 
     const DBObject = { logObject: this.getLogObject() };
     try {
       await this.repository.save(this.logger, DBObject);
-      this.logger.method(__filename, 'saveToDDBB').success();
+      this.logger.where(__filename, 'saveToDDBB').end();
     } catch (err) {
-      this.logger.method(__filename, 'saveToDDBB').error('KO from DDBB', err);
+      this.logger.where(__filename, 'saveToDDBB').error('KO from DDBB', err);
       throw this.responses.ddbb_error;
     }
   }
@@ -283,14 +284,14 @@ class WorkflowProcessEntity {
    * @returns {Promise}
    */
   async updateInDDBB() {
-    this.logger.method(__filename, 'updateInDDBB').accessing();
+    this.logger.where(__filename, 'updateInDDBB').accessing();
 
     const DBObject = { logObject: this.getLogObject() };
     try {
       await this.repository.updateLog(this.logger, DBObject);
-      this.logger.method(__filename, 'updateInDDBB').success();
+      this.logger.where(__filename, 'updateInDDBB').end();
     } catch (err) {
-      this.logger.method(__filename, 'updateInDDBB').error('KO from DDBB', err);
+      this.logger.where(__filename, 'updateInDDBB').error('KO from DDBB', err);
       throw this.responses.ddbb_error;
     }
   }
@@ -300,7 +301,7 @@ class WorkflowProcessEntity {
    * @returns {Promise}
    */
   async fetchProcess() {
-    this.logger.method(__filename, 'fetchProcess').accessing();
+    this.logger.where(__filename, 'fetchProcess').accessing();
     const DBObject = { processUuid: this.getProcessUuid() };
 
     try {
@@ -308,13 +309,13 @@ class WorkflowProcessEntity {
       if (result) {
         this.setLogObject(result);
         this.setProcessData(this.getLogObjectData());
-        this.logger.method(__filename, 'fetchProcess').success();
+        this.logger.where(__filename, 'fetchProcess').end();
       } else {
-        this.logger.method(__filename, 'fetchProcess').error('No process');
+        this.logger.where(__filename, 'fetchProcess').error('No process');
         throw this.responses.no_workflow_found_ko;
       }
     } catch (err) {
-      this.logger.method(__filename, 'fetchProcess').error('DB KO');
+      this.logger.where(__filename, 'fetchProcess').error('DB KO');
       throw err === this.responses.no_workflow_found_ko ? err : this.responses.ddbb_error;
     }
   }

@@ -1,12 +1,15 @@
 'use strict';
 
-const config = require('./../../../config/environment');
 const DBService = require('./../../services/DbService');
 
 class StatsDAO extends DBService {
 
-  constructor() {
+  constructor(deps) {
     super();
+    const {
+      config
+    } = deps;
+    this.collectionName = config.collections.logs;
   }
 
   /**
@@ -15,7 +18,7 @@ class StatsDAO extends DBService {
    * @return {string} result - The collection name
    */
   getCollectionName() {
-    return config.collections.logs;
+    return this.collectionName;
   }
 
   getResponses() {
@@ -28,7 +31,7 @@ class StatsDAO extends DBService {
    * @param {Object} DBObject - The container object
    */
   fetch(logger, DBObject) {
-    logger.method(__filename, 'fetch').accessing();
+    logger.where(__filename, 'fetch').accessing();
     const DAOData = {
       query: {}
     };

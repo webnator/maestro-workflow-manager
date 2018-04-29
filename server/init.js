@@ -1,15 +1,16 @@
 'use strict';
 
-const config = require('./config/environment/');
-const app = require('./app.js');
 const queueRoutes = require('./queueRoutes');
 const GlobalService = require('./api/services/global.service');
 
 async function appInit(deps) {
   const {
+    app,
     QueueService,
     mongodb,
-    LogService
+    LogService,
+    config,
+    uuid
   } = deps;
   const MongoClient = mongodb.MongoClient;
 
@@ -17,7 +18,15 @@ async function appInit(deps) {
     const server = await app.init();
 
     server.ext('onRequest', (request, reply) => {
-      request.logger = LogService({request});
+      request.logger = LogService.child({
+        request: {
+          payload: request.payload,
+          query: request.query,
+          headers: request.headers,
+          params: request.params,
+        },
+        traceId: uuid.v4()
+      });
       return reply.continue();
     });
 
@@ -34,11 +43,10 @@ async function appInit(deps) {
       GlobalService.setConfigValue('db', db.db(config.mongoSettings.dbName));
     });
 
-    QueueService.set({ queueConfig: config.queueConfig, routes: queueRoutes });
-    const myQueue = QueueService.get();
-    await myQueue.connect();
+    const myQueue = await QueueService.create({ queueConfig: config.queueConfig, routes: queueRoutes });
+
     for (let queue in config.queues) {
-      myQueue.createAndBindQueue(config.queues[queue]);
+      myQueue.queueManager.getQueue().createAndBindQueue(config.queues[queue]);
     }
 
     console.log('Server running at', server.info.uri);

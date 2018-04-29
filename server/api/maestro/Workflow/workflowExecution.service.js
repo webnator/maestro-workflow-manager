@@ -1,13 +1,12 @@
 'use strict';
 
-const config = require('./../../../config/environment');
-
 function makeWorkflowService(deps) {
   const {
     workflowEntityFactory,
     workflowProcessEntityFactory,
     workflowResponses: responses,
-    QueueService
+    QueueService,
+    config
   } = deps;
 
   return {
@@ -19,13 +18,13 @@ function makeWorkflowService(deps) {
      * @param {Object} request - The request object
      */
     async executeFlow(logger, { templateId, request }) {
-      logger.method(__filename, 'executeFlow').accessing();
+      logger.where(__filename, 'executeFlow').accessing();
 
       const workflowTemplate = workflowEntityFactory({logger, templateId});
       try {
         const template = await workflowTemplate.fetchTemplate({templateId});
         if (!template) {
-          logger.method(__filename, 'executeFlow').error('flow doesnt exist');
+          logger.where(__filename, 'executeFlow').error('flow doesnt exist');
           await QueueService.publishHTTP(config.topics.unhandled_flows, request.payload, request.headers, request.query, request.params);
           throw responses.no_templates_found_ko;
         }
@@ -33,7 +32,7 @@ function makeWorkflowService(deps) {
         workflowProcess.setLogObjectData({payload: request.payload});
         await workflowProcess.saveToDDBB();
         request.headers['x-flowprocessid'] = workflowProcess.getProcessUuid();
-        logger.method(__filename, 'executeFlow').success();
+        logger.where(__filename, 'executeFlow').end();
         return { request, workflowProcess };
       } catch (err) {
         throw err;
@@ -47,7 +46,7 @@ function makeWorkflowService(deps) {
      * @param {Object} request - The request object
      */
     async processFlow(logger, {request}) {
-      logger.method(__filename, 'processFlow').accessing();
+      logger.where(__filename, 'processFlow').accessing();
 
       const workflowProcess = workflowProcessEntityFactory({processUuid: request.headers['x-flowprocessid']});
       workflowProcess.setProcessStep(request.headers['x-flowtaskid']);
@@ -64,9 +63,9 @@ function makeWorkflowService(deps) {
 
         await workflowProcess.updateInDDBB();
 
-        logger.method(__filename, 'processFlow').success();
+        logger.where(__filename, 'processFlow').end();
       } catch (err) {
-        logger.method(__filename, 'processFlow').error('Error executing the flow', err);
+        logger.where(__filename, 'processFlow').error('Error executing the flow', err);
         throw err;
       }
     },
@@ -78,7 +77,7 @@ function makeWorkflowService(deps) {
      * @param {Object} request - The request object
      */
     async continueFlow(logger, {request}) {
-      logger.method(__filename, 'continueFlow').accessing();
+      logger.where(__filename, 'continueFlow').accessing();
 
       const workflowProcess = workflowProcessEntityFactory({processUuid: request.payload.processUuid});
       try {
@@ -96,9 +95,9 @@ function makeWorkflowService(deps) {
 
         await workflowProcess.updateInDDBB(data);
 
-        logger.method(__filename, 'continueFlow').success();
+        logger.where(__filename, 'continueFlow').end();
       } catch (err) {
-        logger.method(__filename, 'continueFlow').error('Error continuing the flow', err);
+        logger.where(__filename, 'continueFlow').error('Error continuing the flow', err);
         throw err;
       }
     },

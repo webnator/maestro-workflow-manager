@@ -2,10 +2,10 @@
 
 /*** Main application routes */
 
-const container = require('./api/boot');
+const container = require('./boot');
 
 exports.register = function(server, options, next) {
-  require('./api/maestro')(server, container);
+  require('./api/maestro/api.router')(server, container);
   next();
 };
 

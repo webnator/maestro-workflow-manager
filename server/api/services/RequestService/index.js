@@ -47,7 +47,7 @@ class RequestService {
     };
   }
 
-  async _makeRequest({object, logger}) {
+  async _makeRequest({object}) {
     try {
       return this.RequestLib(object);
     } catch (err) {

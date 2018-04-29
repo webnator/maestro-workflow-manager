@@ -1,5 +1,5 @@
 'use strict';
 
-const container = require('./api/boot');
+const container = require('./boot');
 
 container.resolve('appInit');

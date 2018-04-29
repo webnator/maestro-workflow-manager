@@ -35,15 +35,15 @@ class WorkflowStatsEntity {
    * Fetches a list of processes depending on the received parameters
    */
   async fetchProcesses() {
-    this.logger.method(__filename, 'fetchProcesses').accessing();
+    this.logger.where(__filename, 'fetchProcesses').accessing();
 
     const DBObject = { params: this.params };
     try {
       const { result } = await this.repository.fetch(this.logger, DBObject);
       this.setProcesses(result);
-      this.logger.method(__filename, 'fetchProcesses').success();
+      this.logger.where(__filename, 'fetchProcesses').end();
     } catch (err) {
-      this.logger.method(__filename, 'fetchProcesses').error('KO from DDBB', err);
+      this.logger.where(__filename, 'fetchProcesses').error('KO from DDBB', err);
       throw this.responses.ddbb_error;
     }
   }

@@ -4,12 +4,12 @@
 const WorflowCreationSchema = require('../models/createWorkflow.schema');
 const WorflowUpdateSchema = require('../models/updateWorkflow.schema');
 
-function makeWorkflowController(deps) {
+function makeService(deps) {
   const {
     ResponsesService,
     ValidationService,
-    WorkflowTemplateService: WorkflowService,
-    workflowResponses: responses
+    WorkflowTemplateService,
+    workflowResponses
   } = deps;
 
   return {
@@ -23,20 +23,21 @@ function makeWorkflowController(deps) {
      */
     async createTemplate(request, reply) {
       const { logger, payload } = request;
-      logger.method(__filename, 'createTemplate').accessing();
+      logger.where(__filename, 'createTemplate').accessing();
 
       let response;
       try {
         const templateObject = await ValidationService.validateSchema(payload, new WorflowCreationSchema());
-        await WorkflowService.createTemplate(logger, {templateObject});
-        response = ResponsesService.createResponseData(responses.wf_template_created_ok);
-        logger.method(__filename, 'createTemplate').success('OK');
+        await WorkflowTemplateService.createTemplate(logger, {templateObject});
+
+        response = ResponsesService.createResponseData(workflowResponses.wf_template_created_ok);
+        logger.where(__filename, 'createTemplate').info('Template created correctly');
       } catch (err) {
         response = ResponsesService.createGeneralError(err);
-        logger.method(__filename, 'createTemplate').fail(err);
-      } finally {
-        reply(response.body).code(response.statusCode);
+        logger.where(__filename, 'createTemplate').warn({err}, 'Template not created');
       }
+      logger.where(__filename, 'createTemplate').end();
+      return reply(response.body).code(response.statusCode);
     },
 
     /**
@@ -49,20 +50,21 @@ function makeWorkflowController(deps) {
      */
     async updateTemplate(request, reply) {
       const { logger, payload, params } = request;
-      logger.method(__filename, 'updateTemplate').accessing();
+      logger.where(__filename, 'updateTemplate').accessing();
 
       let response;
       try {
         const templateObject = await ValidationService.validateSchema(payload, new WorflowUpdateSchema());
-        await WorkflowService.updateTemplate(logger, {templateObject, templateId: params.templateId});
-        response = ResponsesService.createResponseData(responses.wf_template_updated_ok);
-        logger.method(__filename, 'updateTemplate').success('OK');
+        await WorkflowTemplateService.updateTemplate(logger, {templateObject, templateId: params.templateId});
+
+        response = ResponsesService.createResponseData(workflowResponses.wf_template_updated_ok);
+        logger.where(__filename, 'updateTemplate').info('Template updated correctly');
       } catch (err) {
         response = ResponsesService.createGeneralError(err);
-        logger.method(__filename, 'updateTemplate').fail(err);
-      } finally {
-        reply(response.body).code(response.statusCode);
+        logger.where(__filename, 'updateTemplate').warn({err}, 'Template not updated');
       }
+      logger.where(__filename, 'updateTemplate').end();
+      return reply(response.body).code(response.statusCode);
     },
 
     /**
@@ -76,18 +78,19 @@ function makeWorkflowController(deps) {
     async getTemplates(request, reply) {
       const { logger, params } = request;
 
-      logger.method(__filename, 'getTemplates').accessing();
+      logger.where(__filename, 'getTemplates').accessing();
       let response;
       try {
-        const templates = await WorkflowService.getTemplates(logger, { templateId: params.templateId});
-        response = ResponsesService.createResponseData(responses.wf_template_retrieved_ok, templates);
-        logger.method(__filename, 'getTemplates').success('OK');
+        const templates = await WorkflowTemplateService.getTemplates(logger, { templateId: params.templateId});
+        response = ResponsesService.createResponseData(workflowResponses.wf_template_retrieved_ok, templates);
+
+        logger.where(__filename, 'getTemplates').info('Templates retrieved correctly');
       } catch (err) {
         response = ResponsesService.createGeneralError(err);
-        logger.method(__filename, 'getTemplates').fail(err);
-      } finally {
-        reply(response.body).code(response.statusCode);
+        logger.where(__filename, 'getTemplates').warn({err}, 'Templates not retrieved');
       }
+      logger.where(__filename, 'getTemplates').end();
+      return reply(response.body).code(response.statusCode);
     },
 
     /**
@@ -101,22 +104,23 @@ function makeWorkflowController(deps) {
     async deleteTemplate(request, reply) {
       const { logger, params } = request;
 
-      logger.method(__filename, 'deleteTemplate').accessing();
+      logger.where(__filename, 'deleteTemplate').accessing();
       let response;
       try {
-        await WorkflowService.deleteTemplate(logger, {templateId: params.templateId});
-        response = ResponsesService.createResponseData(responses.wf_template_deleted_ok);
-        logger.method(__filename, 'deleteTemplate').success('OK');
+        await WorkflowTemplateService.deleteTemplate(logger, {templateId: params.templateId});
+
+        response = ResponsesService.createResponseData(workflowResponses.wf_template_deleted_ok);
+        logger.where(__filename, 'deleteTemplate').info('Template deleted correctly');
       } catch (err) {
         response = ResponsesService.createGeneralError(err);
-        logger.method(__filename, 'deleteTemplate').fail(err);
-      } finally {
-        reply(response.body).code(response.statusCode);
+        logger.where(__filename, 'deleteTemplate').warn({err}, 'Template not deleted');
       }
+      logger.where(__filename, 'deleteTemplate').end();
+      return reply(response.body).code(response.statusCode);
     },
 
   };
 }
 
-module.exports = makeWorkflowController;
+module.exports = makeService;
 
