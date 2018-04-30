@@ -1,7 +1,7 @@
 'use strict';
 
 function ProcessStatusModel(status, date, failedPayload) {
-  let statusObject = {
+  const statusObject = {
     status: status,
     date: date || new Date()
   };

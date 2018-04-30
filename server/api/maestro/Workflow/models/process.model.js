@@ -1,12 +1,15 @@
 'use strict';
 
-const uuid = require('uuid');
 const processConfig = require('./process.config');
 
-function ProcessModel(templateObject) {
-  if (templateObject) {
-    let processModel = {
-      flowName: templateObject.name,
+function makeService(deps) {
+  const {
+    uuid,
+  } = deps;
+
+  return ({template, request}) => {
+    return {
+      flowName: template.name,
       processUuid: uuid.v4(),
       startDate: new Date(),
       endDate: null,
@@ -14,11 +17,8 @@ function ProcessModel(templateObject) {
         status: processConfig.status.STARTED,
         date: new Date()
       }],
-      tasks: []
-    };
-
-    templateObject.tasks.forEach((task) => {
-      processModel.tasks.push({
+      request,
+      tasks: template.tasks.map((task) => ({
         taskUuid: uuid.v4(),
         service: task.service,
         action: task.action,
@@ -26,19 +26,16 @@ function ProcessModel(templateObject) {
         responseSchema: task.responseSchema,
         dateStarted: null,
         dateFinished: null,
-        data: null,
+        request: null,
         receivedCode: null,
-        receivedResponse: null,
+        response: null,
         status: [{
           status: processConfig.status.CREATED,
           date: new Date()
         }]
-      });
-    });
-
-    return processModel;
-  }
-  return templateObject;
+      }))
+    };
+  };
 }
 
-module.exports = ProcessModel;
+module.exports = makeService;

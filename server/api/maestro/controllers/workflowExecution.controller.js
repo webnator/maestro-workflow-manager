@@ -22,16 +22,17 @@ function makeWorkflowExecutionController(deps) {
      * @param {Function} reply - The reply callback
      */
     async executeFlow(request, reply) {
-      const { logger, params, query, headers, payload } = request;
+      const { logger, params, query, headers, payload, traceId } = request;
       logger.where(__filename, 'executeFlow').accessing();
 
       headers['x-flowid'] = headers['x-flowid'] || params.flowId;
       let response;
       try {
         await ValidationService.validateSchema(headers, new WorflowExecutionSchema());
-        const executionResponse = await WorkflowExecutionService.executeFlow(logger, {
+        const requestObject = { params, query, headers, payload, traceId };
+        const processId = await WorkflowExecutionService.executeFlow(logger, {
           templateId: headers['x-flowid'],
-          request: { params, query, headers, payload }
+          request: requestObject
         });
         response = ResponsesService.createResponseData(workflowResponses.wf_process_started_ok);
 
@@ -40,7 +41,10 @@ function makeWorkflowExecutionController(deps) {
 
         // Async execution
         try {
-          await WorkflowExecutionService.processFlow(logger, {request: executionResponse.request});
+          requestObject.headers = Object.assign({}, requestObject.headers, {
+            'x-flowprocessid': processId
+          });
+          await WorkflowExecutionService.processFlow(logger, {request: requestObject});
           logger.where(__filename, 'executeFlow - processing').end();
         } catch (err) {
           logger.where(__filename, 'executeFlow - processing').warn({err}, 'Workflow execution not processed');
@@ -62,15 +66,14 @@ function makeWorkflowExecutionController(deps) {
      * @param {Function} reply - The reply callback
      */
     async processFlow(request, reply) {
-      const { logger, params, query, headers, payload } = request;
+      const { logger, params, query, headers, payload, traceId } = request;
       logger.where(__filename, 'processFlow').accessing();
 
       let response;
       try {
-        await WorkflowExecutionService.processFlow(logger, {
-          templateId: headers['x-flowid'],
-          data: { params, query, headers, payload }
-        });
+        const requestObject = { params, query, headers, payload, traceId };
+        await WorkflowExecutionService.processFlow(logger, {request: requestObject});
+
         response = ResponsesService.createResponseData(workflowResponses.wf_process_informed_ok);
         logger.where(__filename, 'processFlow').info('Workflow inform processed correctly');
       } catch (err) {
@@ -90,13 +93,13 @@ function makeWorkflowExecutionController(deps) {
      * @param {Function} reply - The reply callback
      */
     async continueFlow(request, reply) {
-      const { logger, headers, payload } = request;
+      const { logger, payload } = request;
       logger.where(__filename, 'continueFlow').accessing();
 
       let response;
       try {
-        const templateObject = await ValidationService.validateSchema(payload, new WorflowContinueSchema());
-        await WorkflowExecutionService.continueFlow(logger, {payload: templateObject, headers});
+        await ValidationService.validateSchema(payload, new WorflowContinueSchema());
+        await WorkflowExecutionService.continueFlow(logger, { processUuid: payload.processUuid, processName: payload.processName});
 
         response = ResponsesService.createResponseData(workflowResponses.wf_process_informed_ok);
         logger.where(__filename, 'continueFlow').info('Workflow continued correctly');
@@ -106,6 +109,33 @@ function makeWorkflowExecutionController(deps) {
       }
       logger.where(__filename, 'continueFlow').end();
       return reply(response.body).code(response.statusCode);
+    },
+
+    /**
+     * Retrieves all the started processes from the DB filtered by the query params
+     * FROM GET - /flows
+     * @public
+     * @static
+     * @param {Object} request - The http request object
+     * @param {Function} reply - The reply callback
+     */
+    async getFlows(request, reply) {
+      const { logger, query } = request;
+
+      logger.where(__filename, 'getFlows').accessing();
+      let response;
+      try {
+        const flows = await WorkflowExecutionService.getStartedProcesses(logger, { query });
+
+        response = ResponsesService.createResponseData(workflowResponses.wf_retrieved_ok, flows);
+        logger.where(__filename, 'getTemplates').info('Flows stats retrieved correctly');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.where(__filename, 'getFlows').warn({err}, 'Flows stats not retrieved');
+      }
+      logger.where(__filename, 'getFlows').end();
+      return reply(response.body).code(response.statusCode);
+
     },
 
   };

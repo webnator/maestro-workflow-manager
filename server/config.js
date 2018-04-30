@@ -26,7 +26,7 @@ module.exports = {
 
   collections: {
     templates: process.env.TEMPLATES_COLLECTION,
-    logs: process.env.LOGS_COLLECTION,
+    processes: process.env.PROCESSES_COLLECTION,
   },
 
   queues: {

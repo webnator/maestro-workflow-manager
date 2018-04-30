@@ -123,7 +123,7 @@ function makeService(deps) {
     },
 
     async publish({ key, msg, delay, traceId }) {
-      const mLogger = logger.child({file: __filename, method: 'publish'});
+      const mLogger = logger.child({file: __filename, method: 'publish', traceId});
       mLogger.info('Accessing');
       const message = new Message(msg);
 
@@ -168,13 +168,18 @@ function makeService(deps) {
     },
 
     async publishToErrorQueue(msg, responseData) {
-      msg.response = responseData;
+      if (responseData instanceof Error) {
+        msg.response = responseData.message;
+      } else {
+        msg.response = responseData;
+      }
+
       await createAndBindQueue(queueConfig.errorQueue, queueConfig.errorTopic);
       return this.publish({ key: queueConfig.errorTopic, msg });
     },
 
     async publishRetry({ key, msg, delay, traceId }) {
-      const mLogger = logger.child({file: __filename, method: 'publishRetry'});
+      const mLogger = logger.child({file: __filename, method: 'publishRetry', traceId});
       let continue_flag = false;
       for (let i = 0; i < retryConfig.retries; i++) {
         mLogger.debug('Trying for the: ' + (i + 1) + ' time');

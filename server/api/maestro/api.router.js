@@ -4,7 +4,6 @@ const container = require('../../boot');
 
 const WorkflowTemplateController = container.resolve('WorkflowTemplateController');
 const WorkflowExecutionController = container.resolve('WorkflowExecutionController');
-const WorkflowStatsController = container.resolve('WorkflowStatsController');
 
 module.exports = (server) => {
   // Template management APIs
@@ -78,7 +77,7 @@ module.exports = (server) => {
     config: {
       description: 'Retrieves a list of flows'
     },
-    handler: WorkflowStatsController.getFlows
+    handler: WorkflowExecutionController.getFlows
   });
 
 

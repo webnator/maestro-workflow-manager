@@ -46,6 +46,22 @@ function makeService(deps) {
     }
   }
 
+  async function informWorkflow(request, status, body) {
+    if (request.headers && request.headers['x-flowinformtopic']) {
+      const maestro_response = {
+        headers: Object.assign({}, request.headers, {
+          'x-flowresponsecode': status,
+          'x-flowtaskfinishedon': new Date(),
+          'x-flowinformtopic': undefined
+        }),
+        payload: body,
+        traceId: request.traceId
+      };
+
+      Queue.publishHTTPToTopic(request.headers['x-flowinformtopic'], maestro_response);
+    }
+  }
+
   async function consumeQueue() {
     let routes = QueueRouter.getRoutes();
     const clogger = logger.child({ file: __filename, method: '_consumeQueue'});
@@ -111,7 +127,10 @@ function makeService(deps) {
             }))
           ).catch((err) => {
             request.logger.error({ err }, 'Error executing handler. Sending to error queue');
-            return Queue.publishToErrorQueue(logger, raw, err).then(() => Queue.ack(message));
+
+            informWorkflow(request, 500, { error: err.message });
+
+            return Queue.publishToErrorQueue(raw, err).then(() => Queue.ack(message));
           }).catch(
             (err) => request.logger.fatal({err}, 'Unhandled error while publishing to the error queue')
           );
@@ -127,14 +146,7 @@ function makeService(deps) {
     let header = {};
 
     process.nextTick(() => {
-
-      if (request.headers && request.headers['x-flowinformtopic']) {
-        request.headers = Object.assign({}, request.headers, {
-          'x-flowresponsecode': status,
-          'x-flowtaskfinishedon': new Date()
-        });
-        Queue.publishHTTPToTopic(request.headers['x-flowinformtopic'], request);
-      }
+      informWorkflow(request, status, responseBody);
 
       const loggerData = {
         payload: request.payload,

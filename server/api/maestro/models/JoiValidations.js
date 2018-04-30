@@ -43,4 +43,8 @@ joiErrors = {
     code:'WFVALSCHEMA108',
     message: 'processUuid is required and must be an uuid string'
   },
+  continueWorkflow_name: {
+    code:'WFVALSCHEMA109',
+    message: 'processName is required and must be a valid string'
+  }
 };
