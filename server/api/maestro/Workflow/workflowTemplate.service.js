@@ -19,6 +19,11 @@ function makeWorkflowService(deps) {
     async createTemplate(logger, {templateObject}) {
       logger.where(__filename, 'createTemplate').accessing();
 
+      const template = await templateRepository.fetch(logger, templateObject.name);
+      if (template) {
+        logger.where(__filename, 'createTemplate').warn('Template name already exists');
+        throw  workflowResponses.template_exists_ko;
+      }
       await templateRepository.save(logger, { template: templateObject });
 
       logger.where(__filename, 'createTemplate').end();

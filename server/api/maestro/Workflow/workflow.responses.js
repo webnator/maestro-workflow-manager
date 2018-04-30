@@ -24,6 +24,8 @@ function makeWfResponses({ResponsesService}) {
 
     invalid_wf_object: ResponsesService.createInternalResponse(400, '40003', 'Invalid workflow creation object'),
 
+    template_exists_ko: ResponsesService.createInternalResponse(400, '40004', 'Stop right there. There is already a template with that name'),
+
     ddbb_error: ResponsesService.createInternalResponse(500, '50000', 'Error connecting to the DDBB'),
   };
 }

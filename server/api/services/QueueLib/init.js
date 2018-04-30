@@ -27,7 +27,7 @@ function makeService(deps) {
       QueueService.setExtraOptions(extraOptions);
 
       const qm = await QueueService.start(routes);
-      logger.info('Library initialized');
+      logger.info('Queue library initialized correctly');
 
       return {
         publish: (key, msg) => qm.getQueue().publishToTopic({ key, msg }),

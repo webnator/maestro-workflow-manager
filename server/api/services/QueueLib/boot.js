@@ -24,7 +24,7 @@ const QueueService = require('./QueueService');
 
 container.register({
   // Libs
-  logger: asValue(pino({})),
+  logger: asValue(pino({ level: 'info' })),
   amqp: asValue(amqp),
   hoek: asValue(hoek),
   delayLib: asValue(delay),

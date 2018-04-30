@@ -38,10 +38,10 @@ async function appInit(deps) {
     // Use connect method to connect to the Server
     MongoClient.connect(url, (err, db) => {
       if (err) {
-        console.error('Error connecting to mongo', err);
+        LogService.error({error: err}, 'Error connecting to mongo');
         throw err;
       }
-      console.log('Connected correctly to DB');
+      LogService.debug('Connected correctly to DB');
       GlobalService.setConfigValue('db', db.db(config.mongoSettings.dbName));
     });
 
@@ -51,9 +51,9 @@ async function appInit(deps) {
       QueueService.queueManager.getQueue().createAndBindQueue(config.queues[queue]);
     }
 
-    console.log('Server running at', server.info.uri);
+    LogService.info({url: server.info.uri}, 'Server running');
   } catch (err) {
-    console.log('Server start error',  err);
+    LogService.error({error: err}, 'Server start error');
   }
 
 }

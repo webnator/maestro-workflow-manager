@@ -35,13 +35,13 @@ function makeService(deps) {
    */
   async function assertQueueAndExchanges(queue, topic) {
     const mLogger = logger.child({file: __filename, method: 'assertQueueAndExchanges'});
-    mLogger.info('Accessing');
+    mLogger.debug('Accessing');
     await channel.assertExchange(queueConfig.exchange, 'topic', exchangeConfig);
     await channel.assertExchange(queueConfig.exchange + '_delayed', 'x-delayed-message', Object.assign({}, exchangeConfig, {
       arguments: {'x-delayed-type': 'topic'}
     }));
     const bindedQueue = await createAndBindQueue(queue, topic);
-    mLogger.info('End');
+    mLogger.debug('End');
     return bindedQueue;
   }
 
@@ -53,12 +53,12 @@ function makeService(deps) {
    */
   async function createAndBindQueue(queueKey, topic) {
     const mLogger = logger.child({file: __filename, method: 'createAndBindQueue'});
-    mLogger.info('Accessing');
+    mLogger.debug('Accessing');
     topic = topic || queueKey;
     const {queue} = await channel.assertQueue(queueKey);
     await channel.bindQueue(queue, queueConfig.exchange, topic);
     await channel.bindQueue(queue, queueConfig.exchange + '_delayed', topic);
-    mLogger.info('End');
+    mLogger.debug('End');
     return queue;
   }
 
@@ -91,7 +91,7 @@ function makeService(deps) {
     createAndBindQueue,
     async connect() {
       const mLogger = logger.child({file: __filename, method: 'connect'});
-      mLogger.info('Accessing');
+      mLogger.debug('Accessing');
       setConnectionConfig();
       // TODO check if the connection and channel exist and are alive, and if so, return them
       // Else
@@ -100,7 +100,7 @@ function makeService(deps) {
         try {
           connection = await amqp.connect(amqpConnection);
           channel = await connection.createChannel();
-          mLogger.info('End');
+          mLogger.info('Connected correctly to RabbitQueue');
           return;
         } catch (err) {
           mLogger.error({err}, 'KO Retrying');
