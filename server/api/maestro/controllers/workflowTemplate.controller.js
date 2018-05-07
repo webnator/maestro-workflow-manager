@@ -16,8 +16,6 @@ function makeService(deps) {
     /**
      * Creates a new workflow template
      * FROM POST - /templates
-     * @public
-     * @static
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
@@ -43,8 +41,6 @@ function makeService(deps) {
     /**
      * Updates a workflow template
      * FROM POST - /templates
-     * @public
-     * @static
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
@@ -70,8 +66,6 @@ function makeService(deps) {
     /**
      * Gets all workflow templates
      * FROM GET - /templates
-     * @public
-     * @static
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
@@ -96,8 +90,6 @@ function makeService(deps) {
     /**
      * Deletes a workflow template
      * FROM DELETE - /templates/{templateId}
-     * @public
-     * @static
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */

@@ -4,6 +4,7 @@ const container = require('../../boot');
 
 const config = container.resolve('config');
 const WorkflowExecutionController = container.resolve('WorkflowExecutionController');
+const RequestHandlersController = container.resolve('RequestHandlersController');
 const uuid = container.resolve('uuid');
 const LogService = container.resolve('LogService');
 
@@ -16,6 +17,11 @@ module.exports = (server) => {
   server.route({
     topic: config.topics.inform,
     handler: (request, reply) => WorkflowExecutionController.processFlow(addLogger(request), reply)
+  });
+
+  server.route({
+    topic: config.topics.handle_http,
+    handler: (request, reply) => RequestHandlersController.handleHTTP(addLogger(request), reply)
   });
 
   server.route({

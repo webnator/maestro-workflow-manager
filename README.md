@@ -3,7 +3,6 @@
 
 
 ### To-do
-- HTTP requests support
 - Filters of payload
 - TESTsss
 - Real life implementation

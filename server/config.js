@@ -34,6 +34,7 @@ module.exports = {
     inconsistent_responses: process.env.QUEUE_BAD_RESPONSE
   },
   topics: {
-    inform: process.env.QUEUE_TOPIC_INFORM
+    inform: process.env.QUEUE_TOPIC_INFORM,
+    handle_http: process.env.QUEUE_TOPIC_HTTP,
   }
 };

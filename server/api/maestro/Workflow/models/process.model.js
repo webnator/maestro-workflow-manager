@@ -20,8 +20,8 @@ function makeService(deps) {
       request,
       tasks: template.tasks.map((task) => ({
         taskUuid: uuid.v4(),
-        service: task.service,
-        action: task.action,
+        type: task.type,
+        executionInfo: task.executionInfo,
         expectedResponse: task.expectedResponse,
         responseSchema: task.responseSchema,
         dateStarted: null,

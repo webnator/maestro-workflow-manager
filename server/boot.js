@@ -29,10 +29,10 @@ const ValidationService = require('./api/services/validation.service');
 const RequestService = require('./api/services/RequestService/index');
 const QueueService = require('./api/services/queue.service');
 
-
 /** Controllers **/
 const WorkflowTemplateController = require('./api/maestro/controllers/workflowTemplate.controller');
 const WorkflowExecutionController = require('./api/maestro/controllers/workflowExecution.controller');
+const RequestHandlersController = require('./api/maestro/controllers/requestHandlers.controller');
 
 /** Models **/
 const processModel = require('./api/maestro/Workflow/models/process.model');
@@ -72,7 +72,7 @@ container.register({
   QueueService: asFunction(QueueService).singleton(),
   ResponsesService: asFunction(ResponsesService).singleton(),
   ValidationService: asFunction(ValidationService).singleton(),
-  RequestService: asFunction(() => RequestService).singleton(),
+  RequestService: asFunction(RequestService).singleton(),
   RepositoryFactory: asFunction(buildMakeFactory({
     REPOSITORY_NAME_TEMPLATES: 'TemplatesDAO',
     REPOSITORY_NAME_PROCESSES: 'ProcessesDAO'
@@ -84,6 +84,7 @@ container.register({
   // controllers
   WorkflowTemplateController: asFunction(WorkflowTemplateController).singleton(),
   WorkflowExecutionController: asFunction(WorkflowExecutionController).singleton(),
+  RequestHandlersController: asFunction(RequestHandlersController).singleton(),
 
   // DAOs
   TemplatesDAO: asClass(TemplatesDAO).singleton(),

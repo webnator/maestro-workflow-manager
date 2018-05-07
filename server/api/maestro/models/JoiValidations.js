@@ -46,5 +46,43 @@ joiErrors = {
   continueWorkflow_name: {
     code:'WFVALSCHEMA109',
     message: 'processName is required and must be a valid string'
-  }
+  },
+  createWorkflow_tasks_type: {
+    code: 'WFVALSCHEMA110',
+    message: 'task.type is required and must be one of the following: '
+  },
+  createWorkflow_tasks_executionInfo: {
+    code: 'WFVALSCHEMA111',
+    message: 'task.executionInfo is required and must be an object'
+  },
+  createWorkflow_tasks_queue_topic: {
+    code: 'WFVALSCHEMA112',
+    message: 'task.executionInfo.topic is required and must be a string'
+  },
+  createWorkflow_tasks_executionInfo_payload: {
+    code: 'WFVALSCHEMA113',
+    message: 'task.executionInfo.payload must be an object'
+  },
+  createWorkflow_tasks_executionInfo_params: {
+    code: 'WFVALSCHEMA114',
+    message: 'task.executionInfo.params must be an object'
+  },
+  createWorkflow_tasks_executionInfo_query: {
+    code: 'WFVALSCHEMA115',
+    message: 'task.executionInfo.query must be an object'
+  },
+  createWorkflow_tasks_executionInfo_headers: {
+    code: 'WFVALSCHEMA116',
+    message: 'task.executionInfo.headers must be an object'
+  },
+  createWorkflow_tasks_http_method: {
+    code: 'WFVALSCHEMA117',
+    message: 'task.executionInfo.method is required and must be a valid HTTP method: '
+  },
+  createWorkflow_tasks_http_url: {
+    code: 'WFVALSCHEMA118',
+    message: 'task.executionInfo.url is required and must be a valid uri'
+  },
+
+
 };

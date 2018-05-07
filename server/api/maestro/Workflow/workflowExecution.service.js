@@ -69,9 +69,7 @@ function makeWorkflowService(deps) {
         if (taskIsValid) {
           currentTask.status.push(new ProcessStatusModel(processConfig.status.COMPLETED, currentTask.dateFinished));
           nextTask = WorkflowExecutionUtils.getNextTask(process.tasks, currentTask.taskUuid);
-          nextTask.request = {
-            payload: Object.assign({}, currentTask.request.payload, currentTask.response.payload)
-          };
+
         } else {
           const failedPayload = {
             code: currentTask.receivedCode,
@@ -82,13 +80,16 @@ function makeWorkflowService(deps) {
       } else {
         // If there's no current task it means we're at the beginning of the process
         nextTask = process.tasks[0];
-        nextTask.request = {
-          payload: request.payload
-        };
       }
 
       // If there's a next task to be executed
       if (nextTask) {
+        nextTask.request = {
+          payload: Object.assign({}, nextTask.executionInfo.payload, request.payload),
+          params: Object.assign({}, nextTask.executionInfo.params),
+          query: Object.assign({}, nextTask.executionInfo.query),
+          headers: Object.assign({}, nextTask.executionInfo.headers)
+        };
         await WorkflowExecutionUtils.executeNextTask(nextTask, process.processUuid);
       } else {
         process = WorkflowExecutionUtils.setProcessFinish(process, currentTask);

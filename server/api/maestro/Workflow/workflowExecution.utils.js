@@ -49,15 +49,17 @@ function makeService(deps) {
     async checkTaskExecution(task, { processId, receivedStatus, request }) {
       if (task.expectedResponse === receivedStatus) {
 
-        const validationResponse = jsonschema.validate(request.payload, task.responseSchema);
-        if (validationResponse.errors && validationResponse.errors.length > 0) {
-          const badPayload = {
-            request: request,
-            task: task.taskUuid,
-            process: processId,
-            errors: validationResponse.errors
-          };
-          await QueueService.publishHTTP(config.queues.inconsistent_responses, { payload: badPayload, traceId: request.traceId });
+        if (task.responseSchema) {
+          const validationResponse = jsonschema.validate(request.payload, task.responseSchema);
+          if (validationResponse.errors && validationResponse.errors.length > 0) {
+            const badPayload = {
+              request: request,
+              task: task.taskUuid,
+              process: processId,
+              errors: validationResponse.errors
+            };
+            await QueueService.publishHTTP(config.queues.inconsistent_responses, { payload: badPayload, traceId: request.traceId });
+          }
         }
         return true;
       } else {
@@ -80,14 +82,32 @@ function makeService(deps) {
         task.status.push(new ProcessStatusModel(processConfig.status.STARTED));
       }
 
+      if (task.type === 'QUEUE') {
+        const topic = task.executionInfo.topic;
+        task.request.headers = Object.assign({}, task.request.headers, {
+          'x-flowprocessid': processId,
+          'x-flowtaskid': task.taskUuid,
+          'x-flowinformtopic': config.topics.inform
+        });
+        await QueueService.publishHTTP(topic, task.request);
+      } else if (task.type === 'HTTP') {
+        const topic = config.topics.handle_http;
+        const httpRequest = {
+          headers: {
 
-      const topic = task.service + '.' + task.action;
-      task.request.headers = {
-        'x-flowprocessid': processId,
-        'x-flowtaskid': task.taskUuid,
-        'x-flowinformtopic': config.topics.inform
-      };
-      await QueueService.publishHTTP(topic, task.request);
+            'x-flowprocessid': processId,
+            'x-flowtaskid': task.taskUuid,
+            'x-flowinformtopic': config.topics.inform
+          },
+          payload: {
+            request: Object.assign({}, task.request, {
+              url: task.executionInfo.url,
+              method: task.executionInfo.method || 'GET',
+            })
+          }
+        };
+        await QueueService.publishHTTP(topic, httpRequest);
+      }
     },
 
     /**

@@ -16,8 +16,6 @@ function makeWorkflowExecutionController(deps) {
      * Starts the execution of a flow
      * FROM QUEUE - workflow.execute
      * FROM POST - /executeFlow/{flowId}
-     * @public
-     * @static
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
@@ -60,8 +58,6 @@ function makeWorkflowExecutionController(deps) {
     /**
      * Starts the execution of a flow
      * FROM QUEUE - workflow.inform
-     * @public
-     * @static
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
@@ -87,8 +83,6 @@ function makeWorkflowExecutionController(deps) {
     /**
      * Continues an errored workflow
      * FROM QUEUE - workflow.continue
-     * @public
-     * @static
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
@@ -114,8 +108,6 @@ function makeWorkflowExecutionController(deps) {
     /**
      * Retrieves all the started processes from the DB filtered by the query params
      * FROM GET - /flows
-     * @public
-     * @static
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
