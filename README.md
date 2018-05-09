@@ -3,7 +3,6 @@
 
 
 ### To-do
-- Filters of payload
 - Create the queue-services as library
 - TESTsss
 - Real life implementation
