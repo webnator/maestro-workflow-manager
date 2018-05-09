@@ -20,14 +20,16 @@ function makeService(deps) {
 
       let response = {};
       try {
-        const { body, statusCode } = await RequestService(logger, {
+        const reqObject = {
           url: payload.request.url,
           method: payload.request.method,
           payload: payload.request.payload,
           headers: payload.request.headers,
           params: payload.request.params,
           query: payload.request.query
-        });
+        };
+        console.log('-');
+        const { body, statusCode } = await RequestService(logger, reqObject);
         response.body = body;
         response.statusCode = statusCode;
 

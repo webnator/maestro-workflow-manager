@@ -44,6 +44,7 @@ const ProcessesDAO = require('./api/maestro/Workflow/processes.dao');
 const WorkflowTemplateService = require('./api/maestro/Workflow/workflowTemplate.service');
 const WorkflowExecutionService = require('./api/maestro/Workflow/workflowExecution.service');
 const WorkflowExecutionUtils = require('./api/maestro/Workflow/workflowExecution.utils');
+const TaskFilterService = require('./api/maestro/Workflow/taskFilters.service');
 
 
 container.register({
@@ -94,6 +95,7 @@ container.register({
   WorkflowTemplateService: asFunction(WorkflowTemplateService).singleton(),
   WorkflowExecutionService: asFunction(WorkflowExecutionService).singleton(),
   WorkflowExecutionUtils: asFunction(WorkflowExecutionUtils).singleton(),
+  TaskFilterService: asFunction(TaskFilterService).singleton(),
   workflowResponses: asFunction(workflowResponses).singleton()
 
 });

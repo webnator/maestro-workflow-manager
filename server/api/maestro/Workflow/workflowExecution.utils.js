@@ -7,7 +7,8 @@ function makeService(deps) {
   const {
     config,
     jsonschema,
-    QueueService
+    QueueService,
+    TaskFilterService
   } = deps;
 
 
@@ -68,6 +69,36 @@ function makeService(deps) {
     },
 
     /**
+     * Sets the proper request object for a task from a received response
+     * @param {Object} task - The task object to set the request for
+     * @param {Object} request - The request received which payload shall be passed to the task
+     * @param {Object} previousTask - The previously executed task object
+     * @returns {{payload: *, params: *, query: *, headers: *}}
+     */
+    setRequestForTask({ task, request = {}, previousTask }) {
+      let taskRequest = { payload: request.payload };
+      if (task.filters && task.filters.length > 0) {
+        taskRequest = TaskFilterService.applyFilters(taskRequest, task.filters);
+      }
+
+      taskRequest = {
+        payload: Object.assign({}, task.executionInfo.payload, taskRequest.payload),
+        params: Object.assign({}, task.executionInfo.params, taskRequest.params),
+        query: Object.assign({}, task.executionInfo.query, taskRequest.query),
+        headers: Object.assign({}, task.executionInfo.headers, taskRequest.headers)
+      };
+
+      if (previousTask) {
+        if (task.prefilters && task.prefilters.length > 0) {
+          previousTask.request = TaskFilterService.applyFilters(previousTask.request, task.prefilters);
+        }
+        taskRequest.payload = Object.assign({}, previousTask.request.payload, taskRequest.payload);
+      }
+
+      return taskRequest;
+    },
+
+    /**
      * Executes a task from a process
      * @param {Object} task - The task object to check
      * @param {String} processId - The uuid of the process which the tasks belongs to
@@ -94,7 +125,6 @@ function makeService(deps) {
         const topic = config.topics.handle_http;
         const httpRequest = {
           headers: {
-
             'x-flowprocessid': processId,
             'x-flowtaskid': task.taskUuid,
             'x-flowinformtopic': config.topics.inform

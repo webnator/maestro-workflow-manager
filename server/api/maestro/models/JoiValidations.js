@@ -25,7 +25,7 @@ joiErrors = {
   },
   createWorkflow_tasks_responseSchema: {
     code: 'WFVALSCHEMA104',
-    message: 'tasks.responseSchema is required and must be a valid json schema object'
+    message: 'tasks.responseSchema must be a valid json schema object'
   },
   createWorkflow_tasks: {
     code: 'WFVALSCHEMA105',
@@ -83,6 +83,29 @@ joiErrors = {
     code: 'WFVALSCHEMA118',
     message: 'task.executionInfo.url is required and must be a valid uri'
   },
-
+  createWorkflow_tasks_filters: {
+    code: 'WFVALSCHEMA119',
+    message: 'task.filters must be an array'
+  },
+  createWorkflow_tasks_filters_action: {
+    code: 'WFVALSCHEMA120',
+    message: 'task.filters.action is required and must be an string'
+  },
+  createWorkflow_tasks_filters_fields: {
+    code: 'WFVALSCHEMA121',
+    message: 'task.filters.fields is required and must be an array'
+  },
+  createWorkflow_tasks_filters_to: {
+    code: 'WFVALSCHEMA122',
+    message: 'task.filters.to must be an string'
+  },
+  createWorkflow_tasks_filters_newName: {
+    code: 'WFVALSCHEMA123',
+    message: 'task.filters.newName must be an string'
+  },
+  createWorkflow_tasks_prefilters: {
+    code: 'WFVALSCHEMA119',
+    message: 'task.prefilters must be an array'
+  },
 
 };

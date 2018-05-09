@@ -3,8 +3,10 @@
 const Joi = require('joi');
 const joiVals = require('./JoiValidations');
 
-const allowedTaskTypes = ['QUEUE','HTTP'];
+const allowedTaskTypes = ['QUEUE','HTTP','FILTER'];
 const validHTTPMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+const validFilterActions = ['deleteFields', 'renameFields', 'mergeFields', 'extractFields'];
+const validPreFilterActions = ['deleteFields', 'renameFields', 'mergeFields'];
 
 function createWorkflowSchema() {
   return Joi.object().keys({
@@ -29,7 +31,19 @@ function createWorkflowSchema() {
         })
       }).required().label(joiVals.getJoiError('createWorkflow_tasks_executionInfo')),
       expectedResponse: Joi.number().required().label(joiVals.getJoiError('createWorkflow_tasks_expectedResponse')),
-      responseSchema: Joi.object().label(joiVals.getJoiError('createWorkflow_tasks_responseSchema'))
+      responseSchema: Joi.object().label(joiVals.getJoiError('createWorkflow_tasks_responseSchema')),
+      filters: Joi.array().items(Joi.object().keys({
+        action: Joi.string().valid(validFilterActions).required().label(joiVals.getJoiError('createWorkflow_tasks_filters_action', validFilterActions.join(', '))),
+        fields: Joi.array().min(1).required().label(joiVals.getJoiError('createWorkflow_tasks_filters_fields')),
+        to: Joi.string().label(joiVals.getJoiError('createWorkflow_tasks_filters_to')),
+        newName: Joi.string().label(joiVals.getJoiError('createWorkflow_tasks_filters_newName'))
+      })).label(joiVals.getJoiError('createWorkflow_tasks_filters')),
+      prefilters: Joi.array().items(Joi.object().keys({
+        action: Joi.string().valid(validPreFilterActions).required().label(joiVals.getJoiError('createWorkflow_tasks_filters_action', validFilterActions.join(', '))),
+        fields: Joi.array().min(1).required().label(joiVals.getJoiError('createWorkflow_tasks_filters_fields')),
+        to: Joi.string().label(joiVals.getJoiError('createWorkflow_tasks_filters_to')),
+        newName: Joi.string().label(joiVals.getJoiError('createWorkflow_tasks_filters_newName'))
+      })).label(joiVals.getJoiError('createWorkflow_tasks_prefilters'))
     })).required().label(joiVals.getJoiError('createWorkflow_tasks'))
   });
 }
