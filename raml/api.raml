@@ -1,236 +1,88 @@
-#%RAML 0.8
+#%RAML 1.0
 ---
-title: ms-cards
+title: maestro-workflow-manager
 version: v1
-baseUri: /{version}
-
-schemas:
-  - createCard: !include schemas/createCard.json
-  - changePin: !include schemas/changePin.json
-  - enableFirstActivation: !include schemas/enableFirstCardActivation.json
-  - userUuidPayload: !include schemas/userUuidPayload.json
-  - cardRequest: !include schemas/cardRequest.json
-  - changePinInner: !include schemas/changePinInner.json
+baseUri: /{version}/maestro
 
 mediaType: application/json
 
-/cards/inner:
-  /{cardUuid}:
-    uriParameters:
-      cardUuid:
-        displayName: Card ID
-        type: string
-        required: false
-    get:
-      description: Get all cards. (cardUuid is optional)
-      queryParameters:
-        limit:
-          displayName: Limit
-          type: integer
-          description: An integer that indicates the limit of the query
-          minimum: 1
-          maximum: 100
-          default: 50
-          example: 10
-          required: false
-        page:
-          displayName: Page
-          type: integer
-          description: Indicates the page of the pagination
-          minimum: 1
-          default: 1
-          example: 2
-          required: false
-        sortBy:
-          displayName: sortBy
-          type: string
-          description: Order by some allowed fields like dateCreated or firstName
-          default: dateCreated
-          example: firstName
-          enum: [dateCreated, firstName]
-          required: false
-        state:
-          displayName: userState
-          type: integer
-          description: Filter by user state
-          required: false
-        search:
-          displayName: search
-          type: string
-          description: Performs a global search in multiple fields
-          required: false
-      responses: !include responses/card_info.yml
-
+/templates:
   post:
-    description: Creates a new Card for a user
+    description: Creates a new workflow template
     body:
-      schema: createCard
-      example: !include schemas/examples/createCard.json
-    responses: !include responses/createCard.yml
-
-  /users/{userUuid}:
-    /cards:
-      get:
-        description: get all the cards for a user filter by state codes
-        queryParameters:
-          stateCodes:
-            displayName: stateCodes
-            type: string
-            description: Array of status card codes
-            example: 1,2,3
-            required: false
-        responses: !include responses/allCardsWithoutAuthToken.yml
-      /{uuid}:
-        get:
-          description: get a specific card from a user
-          responses: !include responses/oneCardWithoutAuthToken.yml
-        /pin/change:
-          post:
-            description: Enable the change pin card process
-            responses: !include responses/changePinAccept.yml
-        /deactivate:
-          put:
-            description: Deactive a card for an specific card uuid
-            body:
-              schema: userUuidPayload
-              example: !include schemas/examples/userUuidPayload.json
-            responses: !include responses/deactivateCardInner.yml
-        /block:
-          put:
-            description: Block a card for an specific card uuid
-            body:
-              schema: userUuidPayload
-              example: !include schemas/examples/userUuidPayload.json
-            responses: !include responses/blockCardInner.yml
-        /activate:
-          put:
-            description: Active a card for an specific card uuid
-            body:
-              schema: userUuidPayload
-              example: !include schemas/examples/userUuidPayload.json
-            responses: !include responses/activateCard.yml
-        /pin:
-          put:
-            description: Set the pin for a card
-            body:
-              schema: changePinInner
-              example: !include schemas/examples/changePinInner.json
-            responses: !include responses/changePinInner.yml
-
-    /cardRequest:
-      post:
-        description: Request a new card for a user
-        body:
-          schema: cardRequest
-          example: !include schemas/examples/cardRequest.json
-        responses: !include responses/cardRequest.yml
-
-  /token/{uuid}:
-    description: Retrieve a card for an specific card Token
-    get:
-      description: Retrieve a card for an specific card Token
-      responses: !include responses/retrieveCard.yml
-
-/cards:
+      schema: !include schemas/createTemplate.json
+      example: !include examples/createTemplate.json
+    responses: !include responses/createTemplate.yml
   get:
-    description: get all the cards for a user filter by state codes
-    headers:
-      Authorization:
-        description: string
-        example: 123456|@#$&"$&LKEGR
-        required: true
-    queryParameters:
-      stateCodes:
-        displayName: stateCodes
+    description: Retrieves all the registered templates
+    responses: !include responses/getTemplates.yml
+  /{templatedId}:
+    uriParameters:
+      templatedId:
+        displayName: Name of the template
         type: string
-        description: Array of status card codes
-        example: 1,2,3
-        required: false
-    responses: !include responses/allCards.yml
-
-  /cardRequest:
-    post:
-      description: Enable card request process
-      headers:
-        Authorization:
-          description: string
-          example: 123456|@#$&"$&LKEGR
-          required: true
-      responses: !include responses/enableCardRequest.yml
-
-
-  /{uuid}:
+        required: true
     get:
-      description: get a specific card from a user
-      headers:
-        Authorization:
-          description: string
-          example: 123456|@#$&"$&LKEGR
-          required: true
-      responses: !include responses/oneCard.yml
+      description: Retrieves a registered template
+      responses: !include responses/getTemplate.yml
+    delete:
+      description: Deletes a template
+      responses: !include responses/deleteTemplate.yml
+    patch:
+      description: Updates an existing workflow template
+      body:
+        schema: !include schemas/createTemplate.json
+        example: !include examples/createTemplate.json
+      responses: !include responses/updateTemplate.yml
 
-    /activate:
-      post:
-        description: Enable the card activation process
-        headers:
-          Authorization:
-            description: string
-            example: 123456|@#$&"$&LKEGR
-            required: true
-        responses: !include responses/enableCardActivation.yml
+/executeFlow/{flowId}:
+  uriParameters:
+    flowId:
+      displayName: The name of the flow to execute
+      type: string
+      required: true
+  post:
+    description: Executes a workflow template
+    body:
+      schema: !include schemas/executeWorkflow.json
+      example: !include examples/executeWorkflow.json
+    responses: !include responses/executeWorkflow.yml
 
-    /deactivate:
-      put:
-        description: Deactive a card for an specific card uuid
-        headers:
-          Authorization:
-            description: string
-            example: 123456|@#$&"$&LKEGR
-            required: true
-        responses: !include responses/deactivateCard.yml
+/resumeFlow:
+  post:
+    description: Resumes an errored workflow
+    body:
+      schema: !include schemas/resumeWorkflow.json
+      example: !include examples/resumeWorkflow.json
+    responses: !include responses/resumeWorkflow.yml
 
-    /block:
-      put:
-        description: Block a card for an specific card uuid
-        headers:
-          Authorization:
-            description: string
-            example: 123456|@#$&"$&LKEGR
-            required: true
-        responses: !include responses/blockCard.yml
-
-    /pin:
-      put:
-        description: Set the pin for a card
-        headers:
-          Authorization:
-            description: string
-            example: 123456|@#$&"$&LKEGR
-            required: true
-        body:
-          schema: changePin
-          example: !include schemas/examples/changePin.json
-        responses: !include responses/changePin.yml
-      /change:
-        post:
-          description: Start the validation OTP to change the card pin
-          headers:
-            Authorization:
-              description: string
-              example: 123456|@#$&"$&LKEGR
-              required: true
-          responses: !include responses/changePinValidate.yml
-
-
-    /firstActivation:
-      post:
-        description: Enable the first card activation process
-        headers:
-          Authorization:
-            description: string
-            example: 123456|@#$&"$&LKEGR
-            required: true
-        body:
-          schema: enableActivation
-          example: !include schemas/examples/enableFirstCardActivation.json
-        responses: !include responses/enableFirstCardActivation.yml
+/flows:
+  get:
+    description: Retrieves all the started and executed flows
+    queryParameters:
+      from:
+        description: Specifies since which date we would like to retrieve workflows
+        type: date
+        required: false
+        example: 2018-01-02
+      to:
+        description: Specifies until which date we would like to retrieve workflows
+        type: date
+        required: false
+        example: 2018-05-02
+      processName:
+        description: Specifies which type of process we would like to retrieve workflows for
+        type: string
+        required: false
+        example: test-1
+      processUuid:
+        description: Specifies which exact process we would like to retrieve workflows for
+        type: string
+        required: false
+        example: ﻿2ee38689-676c-4820-8a0c-c92298520ccf
+      status:
+        description: A comma separated list of the process final status we would like to retrieve
+        type: string
+        required: false
+        example: ﻿COMPLETED,FAILED,RESTARTED
+    responses: !include responses/retrieveWorkflows.yml

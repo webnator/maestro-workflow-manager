@@ -20,17 +20,16 @@ function makeWorkflowExecutionController(deps) {
      * @param {Function} reply - The reply callback
      */
     async executeFlow(request, reply) {
-      const { logger, params, query, headers, payload, traceId } = request;
+      const { logger, params, headers, payload, traceId } = request;
       logger.where(__filename, 'executeFlow').accessing();
 
       headers['x-flowid'] = headers['x-flowid'] || params.flowId;
       let response;
       try {
         await ValidationService.validateSchema(headers, new WorflowExecutionSchema());
-        const requestObject = { params, query, headers, payload, traceId };
         const processId = await WorkflowExecutionService.executeFlow(logger, {
           templateId: headers['x-flowid'],
-          request: requestObject
+          request: { payload, traceId }
         });
         response = ResponsesService.createResponseData(workflowResponses.wf_process_started_ok);
 
@@ -39,15 +38,11 @@ function makeWorkflowExecutionController(deps) {
 
         // Async execution
         try {
-          requestObject.headers = Object.assign({}, requestObject.headers, {
-            'x-flowprocessid': processId
-          });
-          await WorkflowExecutionService.processFlow(logger, {request: requestObject});
+          await WorkflowExecutionService.executeNextProcessTask(logger, processId, payload);
           logger.where(__filename, 'executeFlow - processing').end();
         } catch (err) {
           logger.where(__filename, 'executeFlow - processing').warn({err}, 'Workflow execution not processed');
         }
-
       } catch (err) {
         response = ResponsesService.createGeneralError(err);
         logger.where(__filename, 'executeFlow').warn({err}, 'Workflow execution not started');
@@ -56,19 +51,20 @@ function makeWorkflowExecutionController(deps) {
     },
 
     /**
-     * Starts the execution of a flow
+     * Informs the execution of a task in a flow
      * FROM QUEUE - workflow.inform
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
      */
-    async processFlow(request, reply) {
-      const { logger, params, query, headers, payload, traceId } = request;
+    async informTask(request, reply) {
+      const { logger, headers, payload, traceId } = request;
       logger.where(__filename, 'processFlow').accessing();
 
       let response;
       try {
-        const requestObject = { params, query, headers, payload, traceId };
-        await WorkflowExecutionService.processFlow(logger, {request: requestObject});
+        const processId = headers['x-flowprocessid'];
+        const taskId = headers['x-flowtaskid'];
+        await WorkflowExecutionService.handleFinishedTask(logger, processId, taskId, {headers, payload, traceId });
 
         response = ResponsesService.createResponseData(workflowResponses.wf_process_informed_ok);
         logger.where(__filename, 'processFlow').info('Workflow inform processed correctly');
@@ -81,7 +77,7 @@ function makeWorkflowExecutionController(deps) {
     },
 
     /**
-     * Continues an errored workflow
+     * Continues a workflow
      * FROM QUEUE - workflow.continue
      * @param {Object} request - The http request object
      * @param {Function} reply - The reply callback
@@ -92,8 +88,32 @@ function makeWorkflowExecutionController(deps) {
 
       let response;
       try {
+        await WorkflowExecutionService.executeNextProcessTask(logger, payload.processUuid);
+
+        response = ResponsesService.createResponseData(workflowResponses.wf_process_informed_ok);
+        logger.where(__filename, 'continueFlow').info('Workflow continued correctly');
+      } catch (err) {
+        response = ResponsesService.createGeneralError(err);
+        logger.where(__filename, 'continueFlow').warn({err}, 'Workflow not continued');
+      }
+      logger.where(__filename, 'continueFlow').end();
+      return reply(response.body).code(response.statusCode);
+    },
+
+    /**
+     * Resumes an errored workflow
+     * FROM POST - /resumeFlow
+     * @param {Object} request - The http request object
+     * @param {Function} reply - The reply callback
+     */
+    async resumeErroredFlow(request, reply) {
+      const { logger, payload } = request;
+      logger.where(__filename, 'continueFlow').accessing();
+
+      let response;
+      try {
         await ValidationService.validateSchema(payload, new WorflowContinueSchema());
-        await WorkflowExecutionService.continueFlow(logger, { processUuid: payload.processUuid, processName: payload.processName});
+        await WorkflowExecutionService.resumeErroredFlow(logger, { processUuid: payload.processUuid, processName: payload.processName});
 
         response = ResponsesService.createResponseData(workflowResponses.wf_process_informed_ok);
         logger.where(__filename, 'continueFlow').info('Workflow continued correctly');

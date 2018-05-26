@@ -29,8 +29,8 @@ function makeService(deps) {
         request: null,
         receivedCode: null,
         response: null,
-        filters: task.filters,
-        prefilters: task.prefilters,
+        pre_filters: task.pre_filters,
+        post_filters: task.post_filters,
         status: [{
           status: processConfig.status.CREATED,
           date: new Date()

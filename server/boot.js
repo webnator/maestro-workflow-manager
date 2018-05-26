@@ -14,13 +14,13 @@ const queueRoutes = require('./queueRoutes');
 
 /** Libraries **/
 const RequestLib = require('request-promise-native');
-const amqp = require('amqplib');
 const mongodb = require('mongodb');
 const pino = require('pino');
 const Hapi = require('Hapi');
 const uuid = require('uuid');
-const QueueLib = require('./api/services/QueueLib/index');
+const QueueLib = require('maestro-rabbit');
 const jsonschema = require('jsonschema');
+const resolvePath = require('object-resolve-path');
 
 /** Services **/
 const LogService = require('./api/services/log.service');
@@ -57,12 +57,12 @@ container.register({
   // Libs
   logger: asValue(pino({level: 'debug'})),
   RequestLib: asValue(RequestLib),
-  amqp: asValue(amqp),
   mongodb: asValue(mongodb),
   Hapi: asValue(Hapi),
   uuid: asValue(uuid),
   QueueLib: asValue(QueueLib),
   jsonschema: asValue(jsonschema),
+  resolvePath: asValue(resolvePath),
 
   // constants
   REPOSITORY_NAME_TEMPLATES: asValue('templates'),

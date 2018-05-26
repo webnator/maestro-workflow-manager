@@ -1,12 +1,8 @@
 # Maestro
 
-
-
 ### To-do
-- Create the queue-services as library
-- TESTsss
-- Real life implementation
 - README
+- Frontend
 - Conditional flows
 - Flows composed by flows
 - YAML configuration

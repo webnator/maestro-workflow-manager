@@ -1,0 +1,40 @@
+500:
+  description: Internal DB error
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "50000",
+            "message": "Error connecting to the DDBB"
+          }
+        }
+400:
+  description: Invalid request
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "40003",
+            "message": "Invalid workflow creation object"
+          }
+        },
+        {
+          "result": {
+            "code": "40004",
+            "message": "Stop right there. There is already a template with that name"
+          }
+        }
+
+201:
+  description: Template created successfully
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "20100",
+            "message": "Worflow template created successfully"
+          }
+        }

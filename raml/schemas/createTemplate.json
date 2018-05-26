@@ -1,0 +1,162 @@
+{
+  "$id": "http://example.com/example.json",
+  "type": "object",
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "name": {
+      "$id": "/properties/name",
+      "type": "string",
+      "title": "Template name",
+      "examples": [
+        "test-1"
+      ]
+    },
+    "tasks": {
+      "$id": "/properties/tasks",
+      "type": "array",
+      "items": {
+        "$id": "/properties/tasks/items",
+        "type": "object",
+        "properties": {
+          "type": {
+            "$id": "/properties/tasks/items/properties/type",
+            "type": "string",
+            "title": "Task type",
+            "default": "",
+            "examples": [
+              "HTTP", "QUEUE"
+            ]
+          },
+          "executionInfo": {
+            "$id": "/properties/tasks/items/properties/executionInfo",
+            "type": "object",
+            "properties": {
+              "url": {
+                "$id": "/properties/tasks/items/properties/executionInfo/properties/url",
+                "type": "string",
+                "title": "HTTP url",
+                "default": "",
+                "examples": [
+                  "http://localhost:9001/v1/book"
+                ]
+              },
+              "method": {
+                "$id": "/properties/tasks/items/properties/executionInfo/properties/method",
+                "type": "string",
+                "title": "http method",
+                "default": "",
+                "examples": [
+                  "POST", "GET", "PUT", "PATCH", "DELETE"
+                ]
+              },
+              "payload": {
+                "$id": "/properties/tasks/items/properties/executionInfo/properties/payload",
+                "type": "object",
+                "title": "default payload"
+              },
+              "params": {
+                "$id": "/properties/tasks/items/properties/executionInfo/properties/params",
+                "type": "object",
+                "title": "default params"
+              },
+              "query": {
+                "$id": "/properties/tasks/items/properties/executionInfo/properties/query",
+                "type": "object",
+                "title": "default query"
+              },
+              "headers": {
+                "$id": "/properties/tasks/items/properties/executionInfo/properties/headers",
+                "type": "object",
+                "title": "default headers"
+              }
+            },
+            "required": [
+              "url",
+              "method"
+            ]
+          },
+          "expectedResponse": {
+            "$id": "/properties/tasks/items/properties/expectedResponse",
+            "type": "integer",
+            "title": "The request expected response",
+            "default": 0,
+            "examples": [
+              201
+            ]
+          },
+          "responseSchema": {
+            "$id": "/properties/tasks/items/properties/responseSchema",
+            "type": "object",
+            "title": "The json schema for the response to validate"
+          },
+          "pre_filters": {
+            "$id": "/properties/tasks/items/properties/pre_filters",
+            "type": "array",
+            "items": {
+              "$id": "/properties/tasks/items/properties/pre_filters/items",
+              "type": "object",
+              "properties": {
+                "action": {
+                  "$id": "/properties/tasks/items/properties/pre_filters/items/properties/action",
+                  "type": "string",
+                  "title": "The filter action",
+                  "default": "",
+                  "examples": [
+                    "deleteFields", "renameFields", "mergeFields", "extractFields", "deleteAllButFields"
+                  ]
+                },
+                "fields": {
+                  "$id": "/properties/tasks/items/properties/pre_filters/items/properties/fields",
+                  "type": "array",
+                  "title": "The filter fields"
+                }
+              },
+              "required": [
+                "action",
+                "fields"
+              ]
+            }
+          },
+          "post_filters": {
+            "$id": "/properties/tasks/items/properties/post_filters",
+            "type": "array",
+            "items": {
+              "$id": "/properties/tasks/items/properties/post_filters/items",
+              "type": "object",
+              "properties": {
+                "action": {
+                  "$id": "/properties/tasks/items/properties/post_filters/items/properties/action",
+                  "type": "string",
+                  "title": "The filter action",
+                  "examples": [
+                    "deleteFields", "renameFields", "mergeFields", "extractFields", "deleteAllButFields"
+                  ]
+                },
+                "fields": {
+                  "$id": "/properties/tasks/items/properties/post_filters/items/properties/fields",
+                  "type": "array",
+                  "title": "The filter fields"
+                }
+              },
+              "required": [
+                "action",
+                "fields"
+              ]
+            }
+          }
+        },
+        "required": [
+          "type",
+          "executionInfo",
+          "expectedResponse"
+        ]
+      }
+    }
+  },
+  "required": [
+    "name",
+    "tasks"
+  ]
+}
+

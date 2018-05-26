@@ -1,7 +1,10 @@
 {
   "rootDir": "../",
   "collectCoverageFrom": [
-    "server/**/*.js",
+    "server/api/maestro/**/*.js",
+    "!server/api/maestro/**/*.dao.js",
+    "!server/api/maestro/api.router.js",
+    "!server/api/maestro/queue.router.js",
     "!server/**/*.unit.js",
     "!server/config/**/**"
   ],

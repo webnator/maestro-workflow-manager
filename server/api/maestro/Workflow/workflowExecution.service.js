@@ -43,55 +43,76 @@ function makeWorkflowService(deps) {
     },
 
     /**
-     * Process the next task of a workflow
+     * Receives and handles the result of an executed task in the workflow
      * @param {Object} logger - The log object
-     * @param {Object} request - The request object
+     * @param {String} processId - The uuid of the process being executed
+     * @param {String} taskId - The task id that was executed
+     * @param {String} traceId - The trace for the request
+     * @param {Object} headers - The headers of the task
+     * @param {Object} payload - The result of the executed task
+     * @returns {Promise<void>}
      */
-    async processFlow(logger, { request }) {
-      logger.where(__filename, 'processFlow').accessing();
+    async handleFinishedTask(logger, processId, taskId, { headers, payload, traceId }) {
+      logger.where(__filename, 'handleFinishedTask').accessing();
+      let process = await processRepository.fetch(logger, processId);
+      const task = WorkflowExecutionUtils.setTaskResponse({
+        tasks: process.tasks,
+        taskId: taskId,
+        taskInfo: headers,
+        response: payload
+      });
 
-      let process = await processRepository.fetch(logger, request.headers['x-flowprocessid']);
+      const taskIsValid = await WorkflowExecutionUtils.checkTaskExecution(logger, task, {
+        processId: process.processUuid,
+        traceId
+      });
 
-      let currentTask, nextTask;
-      // If there's a previous task that has been executed
-      if (request.headers['x-flowtaskid']) {
-        currentTask = WorkflowExecutionUtils.setCurrentTask({
-          tasks: process.tasks,
-          taskInfo: request.headers,
-          response: request.payload
-        });
-        const taskIsValid = await WorkflowExecutionUtils.checkTaskExecution(currentTask, {
-          receivedStatus: request.headers['x-flowresponsecode'],
-          request,
-          processId: process.processUuid
-        });
-
-        if (taskIsValid) {
-          currentTask.status.push(new ProcessStatusModel(processConfig.status.COMPLETED, currentTask.dateFinished));
-          nextTask = WorkflowExecutionUtils.getNextTask(process.tasks, currentTask.taskUuid);
-
-        } else {
-          const failedPayload = {
-            code: currentTask.receivedCode,
-            response: currentTask.response,
-          };
-          currentTask.status.push(new ProcessStatusModel(processConfig.status.FAILED, currentTask.dateFinished, failedPayload));
-        }
+      if (taskIsValid) {
+        logger.where(__filename, 'handleFinishedTask').debug('Task response is valid');
+        task.status.push(new ProcessStatusModel(processConfig.status.COMPLETED, task.dateFinished));
       } else {
-        // If there's no current task it means we're at the beginning of the process
-        nextTask = process.tasks[0];
+        const failedPayload = {
+          code: task.receivedCode,
+          response: task.response,
+        };
+        logger.where(__filename, 'handleFinishedTask').warn('Task response is not valid');
+        task.status.push(new ProcessStatusModel(processConfig.status.FAILED, task.dateFinished, failedPayload));
       }
-
-      // If there's a next task to be executed
-      if (nextTask) {
-        nextTask.request = WorkflowExecutionUtils.setRequestForTask({task: nextTask, request, previousTask: currentTask});
-        await WorkflowExecutionUtils.executeNextTask(nextTask, process.processUuid);
-      } else {
-        process = WorkflowExecutionUtils.setProcessFinish(process, currentTask);
-      }
-
       await processRepository.updateProcess(logger, process.processUuid, process);
-      logger.where(__filename, 'processFlow').end();
+
+      if (taskIsValid) {
+        logger.where(__filename, 'handleFinishedTask').info('Sending next task for execution');
+        await QueueService.publishHTTP(config.topics.continue, { payload: { processUuid: processId } });
+      } else {
+        process = WorkflowExecutionUtils.setProcessFinish(process, taskId);
+        await processRepository.updateProcess(logger, process.processUuid, process);
+        logger.where(__filename, 'executeNextProcessTask').warn({processId}, 'Process has ended with errors');
+      }
+      logger.where(__filename, 'handleFinishedTask').end();
+    },
+
+    /**
+     * Executes the next task in a process
+     * @param {Object} logger - The log object
+     * @param {String} processId - The uuid of the process to continue
+     * @param {Object} [payload] - The payload to send to the task, this is used only for the first task in a flow. Optional
+     * @returns {Promise<void>}
+     */
+    async executeNextProcessTask(logger, processId, payload) {
+      logger.where(__filename, 'executeNextProcessTask').accessing();
+      let process = await processRepository.fetch(logger, processId);
+      const task = WorkflowExecutionUtils.getNextTask(process);
+      if (task) {
+        const taskPayload = payload || WorkflowExecutionUtils.getPreviousTaskResponse(process);
+
+        task.request = WorkflowExecutionUtils.setRequestForTask(task, taskPayload);
+        await WorkflowExecutionUtils.executeNextTask(task, process.processUuid);
+      } else {
+        process = WorkflowExecutionUtils.setProcessFinish(process);
+        logger.where(__filename, 'executeNextProcessTask').info('Process has ended');
+      }
+      await processRepository.updateProcess(logger, process.processUuid, process);
+      logger.where(__filename, 'executeNextProcessTask').end();
     },
 
     /**
@@ -102,7 +123,7 @@ function makeWorkflowService(deps) {
      * @param {String} processName - The template name for the process to resume
      * We ask for both to avoid problems of uuid not matching processes
      */
-    async continueFlow(logger, {processUuid, processName}) {
+    async resumeErroredFlow(logger, {processUuid, processName}) {
       logger.where(__filename, 'continueFlow').accessing();
 
       let process = await processRepository.fetch(logger, processUuid);

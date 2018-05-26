@@ -1,0 +1,23 @@
+500:
+  description: Internal DB error
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "50000",
+            "message": "Error connecting to the DDBB"
+          }
+        }
+
+200:
+  description: Template retrieved successfully
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "20001",
+            "message": "Worflow template deleted successfully"
+          }
+        }

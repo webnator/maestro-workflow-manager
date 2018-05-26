@@ -64,11 +64,11 @@ module.exports = (server) => {
 
   server.route({
     method: 'POST',
-    path: '/continueFlow',
+    path: '/resumeFlow',
     config: {
       description: 'Continues the execution of an errored workflow'
     },
-    handler: WorkflowExecutionController.continueFlow
+    handler: WorkflowExecutionController.resumeErroredFlow
   });
 
   server.route({

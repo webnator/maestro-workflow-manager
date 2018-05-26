@@ -1,0 +1,32 @@
+
+
+{
+  "$id": "http://example.com/example.json",
+  "type": "object",
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "processName": {
+      "$id": "/properties/processName",
+      "type": "string",
+      "title": "The Processname Schema ",
+      "default": "",
+      "examples": [
+        "test-1"
+      ]
+    },
+    "processUuid": {
+      "$id": "/properties/processUuid",
+      "type": "string",
+      "title": "The Processuuid Schema ",
+      "default": "",
+      "examples": [
+        "2ee38689-676c-4820-8a0c-c92298520ccf"
+      ]
+    }
+  },
+  "required": [
+    "processName",
+    "processUuid"
+  ]
+}

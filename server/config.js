@@ -21,6 +21,7 @@ module.exports = {
     exchange: process.env.QUEUECONFIG_EXCHANGE,
     errorQueue: process.env.QUEUECONFIG_ERROR_QUEUE,
     errorTopic: process.env.QUEUECONFIG_ERROR_TOPIC,
+    maxRetries: process.env.QUEUECONFIG_MAX_RETRIES,
     reconnectionTime: parseInt(process.env.QUEUECONFIG_RECONNECTION_TIME),
   },
 
@@ -35,6 +36,7 @@ module.exports = {
   },
   topics: {
     inform: process.env.QUEUE_TOPIC_INFORM,
+    continue: process.env.QUEUE_TOPIC_CONTINUE,
     handle_http: process.env.QUEUE_TOPIC_HTTP,
   }
 };

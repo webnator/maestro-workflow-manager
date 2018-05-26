@@ -1,6 +1,22 @@
 'use strict';
 
-function makeService() {
+function makeService(deps) {
+  const {
+    resolvePath
+  } = deps;
+
+  /**
+   * Resolves a string field with the path resolver
+   * @param {Object} data - The object
+   * @param {String} field - The string representation field to fetch
+   */
+  function resolveField(data, field) {
+    try {
+      return resolvePath(data, field);
+    } catch (err) {
+      return null;
+    }
+  }
 
   /**
    * Applies one filter to the data object
@@ -9,28 +25,37 @@ function makeService() {
    * @returns {Object}
    */
   function applyFilter(data, filter) {
+    if (filter.action === 'deleteAllButFields') {
+      data.payload = filter.fields.reduce((acc, val) => {
+        if (data.payload[val]) { acc[val] = data.payload[val]; }
+        return acc;
+      }, {});
+      return data;
+    }
+
     filter.fields.forEach(field => {
       const fieldName = field.name || field;
-      if (data.payload.hasOwnProperty(fieldName)) {
+      const fieldValue = resolveField(data.payload, fieldName);
+      if (fieldValue) {
         switch(filter.action) {
           case 'deleteFields':
             delete data.payload[field];
             break;
           case 'renameFields':
-            data.payload[field.newName] = data.payload[field.name];
+            data.payload[field.newName] = fieldValue;
             delete data.payload[field.name];
             break;
           case 'mergeFields':
-            if (typeof data.payload[field] === 'object' && !Array.isArray(data.payload[field])) {
-              data.payload[filter.newName] = Object.assign({}, data.payload[filter.newName], data.payload[field]);
+            if (typeof fieldValue === 'object' && !Array.isArray(fieldValue)) {
+              data.payload[filter.newName] = Object.assign({}, data.payload[filter.newName], fieldValue);
             } else {
-              data.payload[filter.newName] = data.payload[filter.newName] || (Array.isArray(data.payload[field]) ? [] : '');
-              data.payload[filter.newName] = data.payload[filter.newName].concat(data.payload[field]);
+              data.payload[filter.newName] = data.payload[filter.newName] || (Array.isArray(fieldValue) ? [] : '');
+              data.payload[filter.newName] = data.payload[filter.newName].concat(fieldValue);
             }
             delete data.payload[field];
             break;
           case 'extractFields':
-            data[filter.to] = Object.assign({}, data[filter.to], { [field]: data.payload[field]});
+            data[filter.to] = Object.assign({}, data[filter.to], { [field]: fieldValue});
             break;
         }
       }

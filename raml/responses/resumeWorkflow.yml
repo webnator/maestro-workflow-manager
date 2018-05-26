@@ -1,0 +1,40 @@
+500:
+  description: Internal DB error
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "50000",
+            "message": "Error connecting to the DDBB"
+          }
+        }
+400:
+  description: Invalid request
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "40002",
+            "message": "No workflow process was found"
+          }
+        },
+        {
+          "result": {
+            "code": "40001",
+            "message": "The workflow cant continue because is already completed"
+          }
+        }
+
+200:
+  description: Workflow resumed successfully
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "20003",
+            "message": "Worflow process step completed successfully"
+          }
+        }

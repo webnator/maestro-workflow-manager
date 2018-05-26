@@ -1,0 +1,38 @@
+500:
+  description: Internal DB error
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "50000",
+            "message": "Error connecting to the DDBB"
+          }
+        }
+
+200:
+  description: Templates retrieved successfully
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "20000",
+            "message": "Worflow template retrieved successfully"
+          },
+          "data": [
+            {
+              "name": "test-2",
+              "tasks": [
+                {
+                  "type": "HTTP",
+                  "executionInfo": {
+                    "url": "http://localhost:9001/v1/book",
+                    "method": "POST"
+                  },
+                  "expectedResponse": 201
+                }
+              ]
+            }
+          ]
+        }

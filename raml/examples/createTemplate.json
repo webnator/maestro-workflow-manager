@@ -1,0 +1,93 @@
+{
+  "name": "test-1",
+  "tasks": [
+    {
+      "type": "HTTP",
+      "executionInfo": {
+        "url": "http://localhost:9001/v1/book",
+        "method": "POST",
+        "payload": {
+          "default_payload": "hey"
+        },
+        "params": {
+          "default_payload": "ho"
+        },
+        "query": {
+          "default_query": "holo"
+        },
+        "headers": {
+          "default_headers": "123"
+        }
+      },
+      "expectedResponse": 201,
+      "responseSchema": {
+        "$id": "http://example.com/example.json",
+        "type": "object",
+        "definitions": {},
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "properties": {
+          "data": {
+            "$id": "/properties/data",
+            "type": "object",
+            "properties": {
+              "bookUuid": {
+                "$id": "/properties/data/properties/bookUuid",
+                "type": "string",
+                "title": "The Bookuuid Schema ",
+                "default": "",
+                "examples": [
+                  "73d1c0a5-b20d-4103-8fa3-03c0a285379b"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "pre_filters": [
+        {
+          "action": "renameFields",
+          "fields": [
+            {
+              "name": "walla",
+              "newName": "author"
+            }
+          ]
+        }
+      ],
+      "post_filters": [
+        {
+          "action": "extractFields",
+          "to": "payload",
+          "fields": [
+            "result.message"
+          ]
+        },
+        {
+          "action": "renameFields",
+          "fields": [
+            {
+              "name": "result.message",
+              "newName": "message"
+            }
+          ]
+        },
+        {
+          "action": "deleteAllButFields",
+          "fields": [
+            "message"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "QUEUE",
+      "executionInfo": {
+        "topic": "book.create",
+        "payload": {
+          "author": "me"
+        }
+      },
+      "expectedResponse": 201
+    }
+  ]
+}

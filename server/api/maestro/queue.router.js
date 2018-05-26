@@ -16,7 +16,7 @@ module.exports = (server) => {
 
   server.route({
     topic: config.topics.inform,
-    handler: (request, reply) => WorkflowExecutionController.processFlow(addLogger(request), reply)
+    handler: (request, reply) => WorkflowExecutionController.informTask(addLogger(request), reply)
   });
 
   server.route({

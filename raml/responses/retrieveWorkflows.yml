@@ -1,0 +1,105 @@
+500:
+  description: Internal DB error
+  body:
+    application/json:
+      example: |
+        {
+          "result": {
+            "code": "50000",
+            "message": "Error connecting to the DDBB"
+          }
+        }
+
+200:
+  description: Workflows retrieved successfully
+  body:
+    application/json:
+      example: |
+        {
+            "result": {
+                "code": "20004",
+                "message": "Worflows processes retrieved successfully"
+            },
+            "data": [
+                {
+                    "flowName": "test-2",
+                    "processUuid": "2ee38689-676c-4820-8a0c-c92298520ccf",
+                    "startDate": "2018-05-22T04:31:15.666Z",
+                    "endDate": "2018-05-22T04:41:55.441Z",
+                    "status": [
+                        {
+                            "status": "STARTED",
+                            "date": "2018-05-22T04:31:15.666Z"
+                        },
+                        {
+                            "status": "FAILED",
+                            "date": "2018-05-22T04:41:57.616Z"
+                        }
+                    ],
+                    "request": {
+                        "payload": {
+                            "walla": "Williams"
+                        },
+                        "traceId": "506d8801-8e23-44b6-bdca-99dd405f2662"
+                    },
+                    "tasks": [
+                        {
+                            "taskUuid": "a93e28cf-27dc-4c74-af60-f1adcbb8061c",
+                            "type": "HTTP",
+                            "executionInfo": {
+                                "url": "http://localhost:9001/v1/book",
+                                "method": "POST"
+                            },
+                            "expectedResponse": 201,
+                            "responseSchema": null,
+                            "dateStarted": "2018-05-22T04:41:47.951Z",
+                            "dateFinished": "2018-05-22T04:41:55.441Z",
+                            "request": {
+                                "payload": {
+                                    "walla": "Williams"
+                                },
+                                "params": {},
+                                "query": {},
+                                "headers": {}
+                            },
+                            "receivedCode": 500,
+                            "response": {
+                                "payload": {
+                                    "result": {
+                                        "code": "50000",
+                                        "message": "StatusCodeError: 400 - {\"result\":{\"code\":\"40003\",\"message\":\"author must be a valid string\"}}"
+                                    }
+                                }
+                            },
+                            "pre_filters": null,
+                            "post_filters": null,
+                            "status": [
+                                {
+                                    "status": "CREATED",
+                                    "date": "2018-05-22T04:31:15.666Z"
+                                },
+                                {
+                                    "status": "STARTED",
+                                    "date": "2018-05-22T04:41:47.952Z"
+                                },
+                                {
+                                    "status": "FAILED",
+                                    "date": "2018-05-22T04:41:55.441Z",
+                                    "failedWith": {
+                                        "receivedCode": 500,
+                                        "receivedResponse": {
+                                            "payload": {
+                                                "result": {
+                                                    "code": "50000",
+                                                    "message": "StatusCodeError: 400 - {\"result\":{\"code\":\"40003\",\"message\":\"author must be a valid string\"}}"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
