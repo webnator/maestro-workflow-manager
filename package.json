@@ -19,7 +19,7 @@
     "joi": "9.2.0",
     "jsonschema": "1.1.1",
     "lodash": "3.10.1",
-    "maestro-rabbit": "file:../maestro-rabbit",
+    "maestro-rabbit": "^1.0.0",
     "mongodb": "3.0.0-rc0",
     "object-resolve-path": "1.1.1",
     "pino": "4.16.1",
