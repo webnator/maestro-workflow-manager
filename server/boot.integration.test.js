@@ -1,6 +1,8 @@
 'use strict';
 
-require('dotenv').config();
+require('dotenv').config({path: './../tests/integration/test'});
+
+console.log(process.env.DB_NAME);
 
 const awilix = require('awilix');
 const {createContainer, asValue, asFunction, asClass} = awilix;
@@ -14,11 +16,11 @@ const queueRoutes = require('./queueRoutes');
 
 /** Libraries **/
 const RequestLib = require('request-promise-native');
-const mongodb = require('mongodb');
+const mongodb = require('mongodb-memory-server');
 const pino = require('pino');
 const Hapi = require('hapi');
 const uuid = require('uuid');
-const QueueLib = require('http-rabbitmq');
+const QueueLib = require('maestro-rabbit');
 const jsonschema = require('jsonschema');
 const resolvePath = require('object-resolve-path');
 
